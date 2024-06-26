@@ -1,27 +1,106 @@
 mod requests;
 mod state;
 mod trucks;
-
+//mod server;
+mod load_details;
+use std::rc::Rc;
 use requests::*;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 use reqwest::Client;
 use gloo::console::log;
-use web_sys::HtmlInputElement;
-use trucks::{Trucks};
+use web_sys::{js_sys, wasm_bindgen::{closure::Closure, JsCast}, HtmlInputElement, MessageEvent, WebSocket};
+use trucks::Trucks;
 use state::*;
+use load_details::*;
 
 
 #[function_component(App)]
 fn app() -> Html {
+    
     let app_state = use_reducer(|| AppState::default());
+    let app_state_rc = Rc::new(app_state.clone());
+    let app_st = Rc::new(app_state.clone());
+    {
+        let app_state_rc = app_state_rc.clone();
+        use_effect_with((), move |_| {
+            let ws = WebSocket::new("ws://192.168.4.97:9001").unwrap();
+            let app_state_rc = app_state_rc.clone();
+            log!(format!("{:?}", ws.clone()));
 
-    html! {
-        <ContextProvider<AppStateContext> context={app_state}>
-            <Login />
-            <UserInfo />
-            <Trucks />
-        </ContextProvider<AppStateContext>>
+            let onmessage_callback = Closure::wrap(Box::new(move |e: MessageEvent| {
+                if let Ok(txt) = e.data().dyn_into::<js_sys::JsString>() {
+                    let incoming_message: IncomingMessage = serde_json::from_str(&txt.as_string().unwrap()).unwrap();
+                    match incoming_message.r#type.as_str() {
+                        "hot_trailer" => {
+                            app_state_rc.dispatch(AppStateAction::HandleHotTrailer(incoming_message.data));
+                        }
+                        "schedule_trailer" => {
+                            app_state_rc.dispatch(AppStateAction::HandleScheduleTrailer(incoming_message.data));
+                        }
+                        "set_door" => {
+                            app_state_rc.dispatch(AppStateAction::HandleSetDoor(incoming_message.data));
+                        }
+                        "trailer_arrived" => {
+                            app_state_rc.dispatch(AppStateAction::HandleTrailerArrived(incoming_message.data));
+                        }
+                        _ => {
+                            log!(format!("Unknown event type: {:?}", incoming_message.r#type));
+                        }
+                    }
+                }
+            }) as Box<dyn FnMut(MessageEvent)>);
+            ws.set_onmessage(Some(onmessage_callback.as_ref().unchecked_ref()));
+            onmessage_callback.forget();
+
+            let onerror_callback = Closure::wrap(Box::new(move |e: ErrorEvent| {
+                log!(&format!("Error: {:?}", e));
+            }) as Box<dyn FnMut(ErrorEvent)>);
+            ws.set_onerror(Some(onerror_callback.as_ref().unchecked_ref()));
+            onerror_callback.forget();
+
+            app_st.dispatch(AppStateAction::ConnectWebSocket(ws));
+
+            || ()
+        });
+    }
+
+    if let Some(user) = &app_state.user {
+        html! {
+            <ContextProvider<AppStateContext> context={app_state.clone()}>
+                <div style="
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: space-evenly;
+                height: 100vh;
+                width: 100vw;
+                margin-top: 7vh;">
+                {
+                    match app_state.current_view.as_str() {
+                        "landing" => html! { <Trucks /> },
+                        "load_details" => html! { <LoadDetails />},
+                        _ => html! { <p>{ "Page not found" }</p> },
+                    }
+                }
+                </div>
+            </ContextProvider<AppStateContext>>
+        }
+    } else {
+        html! {
+            <ContextProvider<AppStateContext> context={app_state.clone()}>
+                <div style="
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: space-evenly;
+                height: 100vh;
+                width: 100vw;
+                margin-top: 7vh;">
+                    <Login />
+                </div>
+            </ContextProvider<AppStateContext>>
+        }
     }
 }
 
@@ -48,7 +127,7 @@ fn login() -> Html {
                     password: (*password).clone(),
                 };
 
-                match client.post("http://192.168.4.92:8000/login")
+                match client.post("http://192.168.4.97:8000/login")
                     .json(&request)
                     .send()
                     .await {
@@ -62,6 +141,7 @@ fn login() -> Html {
                                     refresh_token: login_response.refresh_token,
                                 };
                                 app_state.dispatch(AppStateAction::SetUser(user));
+                                app_state.dispatch(AppStateAction::SetCurrentView("landing".to_string()));
                             },
                             Err(error) => log!(format!("Failed to parse JSON: {:?}", error)),
                         }
@@ -89,11 +169,12 @@ fn login() -> Html {
     };
 
     html! {
-        <div>
+        <div style="text-align: center;">
             <h1>{ "Login" }</h1>
             <input type="text" placeholder="Username" value={(*username).clone()} oninput={on_username_input} />
             <input type="password" placeholder="Password" value={(*password).clone()} oninput={on_password_input} />
             <button onclick={on_login}>{ "Login" }</button>
+            <UserInfo />
         </div>
     }
 }

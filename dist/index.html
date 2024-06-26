@@ -1,15 +1,35 @@
-<!doctype html>
-<html>
-    <head>
-        <meta charset="utf-8" />
-        <title>Yew App</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yew Application</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Import Materialize CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+
+<link rel="modulepreload" href="/yew-app-4c04f76eadad7024.js" crossorigin=anonymous integrity="sha384-mD6SZ5fs1OargbfOyhCMoPuEHMsxFU7ZcMgpMzAiSITm56QKxvfT8AjBP7kJtxmP">
+<link rel="preload" href="/yew-app-4c04f76eadad7024_bg.wasm" crossorigin=anonymous integrity="sha384-/V39dVJDYDgEVwoh307MDFRvXJwrEC6j5/Brizkg4QoeBe46F9K2s7ZQw/Aib6iu" as="fetch" type="application/wasm"></head>
+<body>
+    <div id="root"></div>
+    <script>
+        function downloadCSV(filename, text) {
+            var element = document.createElement('a');
+            element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(text));
+            element.setAttribute('download', filename);
     
-<link rel="modulepreload" href="/yew-app-3c384098d5313d8f.js" crossorigin=anonymous integrity="sha384-3TorUxsQq7zwLfzBxMb5PdISuPdSWyvjHwPR7cvk127UTkJmRH4sUsQoUb5KRQss">
-<link rel="preload" href="/yew-app-3c384098d5313d8f_bg.wasm" crossorigin=anonymous integrity="sha384-yq29UtIXvRpDkRb8iSiaMsD5tihy5eZClyRGA+v3yJ5mmGE4Z5R4K8adI/eA1NOf" as="fetch" type="application/wasm"></head>
-    <body>
-<script type="module" nonce="Tt9EojykR3TY+PXl8qIW5A==">
-import init, * as bindings from '/yew-app-3c384098d5313d8f.js';
-const wasm = await init('/yew-app-3c384098d5313d8f_bg.wasm');
+            element.style.display = 'none';
+            document.body.appendChild(element);
+    
+            element.click();
+    
+            document.body.removeChild(element);
+        }
+    </script>
+
+<script type="module" nonce="chY0to50cd3J9h8CHiDF6g==">
+import init, * as bindings from '/yew-app-4c04f76eadad7024.js';
+const wasm = await init('/yew-app-4c04f76eadad7024_bg.wasm');
 
 
 window.wasmBindings = bindings;
