@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::{requests::*, state::*};
+use crate::{models::*, AppStateAction};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{js_sys, window};
 use yew::prelude::*;
@@ -33,7 +33,7 @@ fn create_csv(data: &Vec<SidParts>, app_state: &AppState) -> String {
     for sid in data {
         let s = format!("{}{}", app_state.current_trailer.as_ref().unwrap().TrailerID, render_location(&sid.Sid.CiscoID));
         for part in &sid.Parts {
-            writeln!(csv_string, "{},{},{},DAL,P, ,{},{},{},1", s, part.partNumber, part.quantity, render_location(&sid.Sid.CiscoID), format_current_date(), app_state.current_trailer.as_ref().unwrap().TrailerID);
+            let _ = writeln!(csv_string, "{},{},{},DAL,P, ,{},{},{},1", s, part.partNumber, part.quantity, render_location(&sid.Sid.CiscoID), format_current_date(), app_state.current_trailer.as_ref().unwrap().TrailerID);
         }
     }
     csv_string
@@ -79,7 +79,7 @@ pub fn load_details() -> Html {
                             param: trl.TrailerID.clone()
                         };
                         if let Some(user) = &app_state.user {
-                            match client.post("http://192.168.4.97:8000/api/get_load_info")
+                            match client.post("http://192.168.4.102:8000/api/get_load_info")
                                 .json(&request)
                                 .header("Authorization", format!("Bearer {}", user.token))
                                 .send()
@@ -89,10 +89,16 @@ pub fn load_details() -> Html {
                                             Ok(load_response) => {
                                                 details.set(Rc::new(load_response.clone()));
                                             },
-                                            Err(error) => log!(format!("Error: {:?}", error)),
+                                            Err(error) => {
+                                                log!(format!("{:?}", error));
+                                                app_state.dispatch(AppStateAction::ClearUser);
+                                            },
                                         }
                                     },
-                                    Err(error) => log!(format!("{:?}", error))
+                                    Err(error) => {
+                                        log!(format!("Failed to login: {:?}", error));
+                                        app_state.dispatch(AppStateAction::ClearUser);
+                                    },
                                 }
                         }
                     }
@@ -103,13 +109,6 @@ pub fn load_details() -> Html {
         }
     }
 
-    let all_trailers = {
-        let app_state = app_state.clone();
-        Callback::from(move |_| {
-            app_state.dispatch(AppStateAction::SetCurrentView("landing".to_string()));
-        })
-    };
-
     let trailer = app_state.current_trailer.clone();
 
     html! {
@@ -117,26 +116,26 @@ pub fn load_details() -> Html {
             {
                 if let Some(trailer) = trailer {
                     html! {
-                        <div class="container">
+                        <div style="margin-top: 7vh;">
                         <h1 style="text-align: center;">{"Load Details: "} {trailer.TrailerID}</h1>
                         { for details.iter().map(|sids| 
                             
                             html! {
                                 <>
-                                <h3 style="text-align: center">{sids.Sid.id.clone()}{"  ||  "}{sids.Sid.CiscoID.clone()}</h3>
+                                <h3 style="text-align: center">{sids.Sid.id.clone()}{"  ||  "}{render_location(&sids.Sid.CiscoID)}</h3>
                                 <table>
                                     <thead>
-                                        <tr style="text-align: center;">
-                                            <td>{"Part"}</td>
-                                            <td>{"Quantity"}</td>
+                                        <tr>
+                                            <td style="text-align: center;">{"Part"}</td>
+                                            <td style="text-align: center;">{"Quantity"}</td>
                                         </tr>
                                     </thead>
                                     <tbody>
                                 { for sids.Parts.iter().map(|part|
                                     html! {
                                         <tr style="text-align: center;">
-                                            <td>{part.partNumber.clone()}</td>
-                                            <td>{part.quantity}</td>
+                                            <td style="text-align: center;">{part.partNumber.clone()}</td>
+                                            <td style="text-align: center;">{part.quantity}</td>
                                         </tr>
                                     }
                                 )}
@@ -145,9 +144,9 @@ pub fn load_details() -> Html {
                                 </>
                             }
                         )}
-                        <button style="background-color: #F44336; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px; text-align: center;" onclick={download_csv}>{"Download CSV"}</button>
-
-                        <button style="background-color: #F44336; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px; text-align: center;" onclick={all_trailers.clone()}>{"All Trailers"}</button>
+                            <div style="margin: 3%; display: flex; width: 70vw; flex-direction: row; justify-content: space-evenly;">
+                                <button style="background-color: green; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={download_csv}>{"Download CSV"}</button>
+                            </div>
                         </div>
                     }
                 } else {

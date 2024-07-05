@@ -1,10 +1,16 @@
-mod requests;
+mod models;
 mod state;
 mod trucks;
+mod daily_csv;
+mod user_local_storage;
+mod trailers_date_range;
 //mod server;
 mod load_details;
+mod nav;
+mod todays_schedule;
+mod edit_trailer;
 use std::rc::Rc;
-use requests::*;
+use models::*;
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 use reqwest::Client;
@@ -13,6 +19,10 @@ use web_sys::{js_sys, wasm_bindgen::{closure::Closure, JsCast}, HtmlInputElement
 use trucks::Trucks;
 use state::*;
 use load_details::*;
+use nav::Nav;
+use todays_schedule::TodaysSchedule;
+use edit_trailer::EditTrailer;
+use trailers_date_range::TrailersDateRange;
 
 
 #[function_component(App)]
@@ -24,7 +34,7 @@ fn app() -> Html {
     {
         let app_state_rc = app_state_rc.clone();
         use_effect_with((), move |_| {
-            let ws = WebSocket::new("ws://192.168.4.97:9001").unwrap();
+            let ws = WebSocket::new("ws://192.168.4.102:9001").unwrap();
             let app_state_rc = app_state_rc.clone();
             log!(format!("{:?}", ws.clone()));
 
@@ -65,9 +75,10 @@ fn app() -> Html {
         });
     }
 
-    if let Some(user) = &app_state.user {
+    if let Some(_user) = &app_state.user {
         html! {
             <ContextProvider<AppStateContext> context={app_state.clone()}>
+                <Nav />
                 <div style="
                 display: flex;
                 flex-direction: column;
@@ -75,11 +86,14 @@ fn app() -> Html {
                 justify-content: space-evenly;
                 height: 100vh;
                 width: 100vw;
-                margin-top: 7vh;">
+                ">
                 {
                     match app_state.current_view.as_str() {
                         "landing" => html! { <Trucks /> },
                         "load_details" => html! { <LoadDetails />},
+                        "todays_schedule" => html! { <TodaysSchedule /> },
+                        "edit_trailer" => html! { <EditTrailer /> },
+                        "trailers_date_range" => html! { <TrailersDateRange /> },
                         _ => html! { <p>{ "Page not found" }</p> },
                     }
                 }
@@ -106,6 +120,7 @@ fn app() -> Html {
 
 #[function_component(Login)]
 fn login() -> Html {
+    let local_view = use_state(|| "login".to_string());
     let username = use_state(|| "".to_string());
     let password = use_state(|| "".to_string());
     let app_state = use_context::<AppStateContext>().expect("no app state found");
@@ -127,7 +142,7 @@ fn login() -> Html {
                     password: (*password).clone(),
                 };
 
-                match client.post("http://192.168.4.97:8000/login")
+                match client.post("http://192.168.4.102:8000/login")
                     .json(&request)
                     .send()
                     .await {
@@ -142,6 +157,41 @@ fn login() -> Html {
                                 };
                                 app_state.dispatch(AppStateAction::SetUser(user));
                                 app_state.dispatch(AppStateAction::SetCurrentView("landing".to_string()));
+                            },
+                            Err(error) => log!(format!("Failed to parse JSON: {:?}", error)),
+                        }
+                    },
+                    Err(error) => log!(format!("Failed to login: {:?}", error)),
+                }
+            });
+        })
+    };
+
+    let on_register = {
+        let username = username.clone();
+        let password = password.clone();
+        let app_state = app_state.clone();
+        let local_view = local_view.clone();
+        Callback::from(move |_| {
+            let username = username.clone();
+            let password = password.clone();
+            let app_state = app_state.clone();
+            let local_view = local_view.clone();
+            spawn_local(async move {
+                let client = Client::new();
+                let request = LoginRequest {
+                    username: (*username).clone(),
+                    password: (*password).clone(),
+                };
+
+                match client.post("http://192.168.4.102:8000/register")
+                    .json(&request)
+                    .send()
+                    .await {
+                    Ok(resp) => {
+                        match resp.json::<String>().await {
+                            Ok(_registration_response) => {
+                                local_view.set("login".to_string());
                             },
                             Err(error) => log!(format!("Failed to parse JSON: {:?}", error)),
                         }
@@ -168,37 +218,54 @@ fn login() -> Html {
         })
     };
 
+    let set_register = {
+        let local_view = local_view.clone();
+        Callback::from(move |_| {
+            local_view.set("register".to_string());
+        })
+    };
+
+    let set_login = {
+        let local_view = local_view.clone();
+        Callback::from(move |_| {
+            local_view.set("login".to_string());
+        })
+    };
+
     html! {
         <div style="text-align: center;">
-            <h1>{ "Login" }</h1>
-            <input type="text" placeholder="Username" value={(*username).clone()} oninput={on_username_input} />
-            <input type="password" placeholder="Password" value={(*password).clone()} oninput={on_password_input} />
-            <button onclick={on_login}>{ "Login" }</button>
-            <UserInfo />
+            { match local_view.as_str() {
+                "register" => html! {
+                    <>
+                        <h1>{ "Register" }</h1>
+                        <input style="text-align: center;" type="text" placeholder="Username" value={(*username).clone()} oninput={on_username_input} />
+                        <input style="text-align: center;" type="password" placeholder="Password" value={(*password).clone()} oninput={on_password_input} />
+                        <div style="margin: 3%; display: flex; width: 30vw; flex-direction: row; justify-content: space-evenly;">
+                            <button style="background-color: green; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;"  onclick={on_register}>{ "Register" }</button>
+                            <button style="background-color: blue; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={set_login}>{ "Login" }</button>
+                        </div>
+                    </>
+                },
+                "login" => html! {
+                    <>
+                        <h1>{ "Login" }</h1>
+                        <input style="text-align: center;" type="text" placeholder="Username" value={(*username).clone()} oninput={on_username_input} />
+                        <input style="text-align: center;" type="password" placeholder="Password" value={(*password).clone()} oninput={on_password_input} />
+                        <div style="margin: 3%; display: flex; width: 30vw; flex-direction: row; justify-content: space-evenly;">
+                            <button style="background-color: green; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={on_login}>{ "Login" }</button>
+                            <button style="background-color: blue; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={set_register}>{ "Register" }</button>
+                        </div>
+                    </>
+                },
+                _ => html! {
+                    <>
+                    {"Not Found"}
+                    </>
+                }
+            }}
         </div>
     }
 }
-
-#[function_component(UserInfo)]
-fn user_info() -> Html {
-    let app_state = use_context::<AppStateContext>().expect("no app state found");
-
-        if let Some(user) = &app_state.user {
-            html! {
-                <div>
-                    <p>{ format!("Logged in as: {}", user.username) }</p>
-                    <p>{ format!("Role: {}", user.role) }</p>
-                    <p>{ format!("Token: {}", user.token) }</p>
-                </div>
-            }
-        } else {
-            html! {
-                <p>{ "Not logged in" }</p>
-            }
-        }
-
-}
-
 
 
 
