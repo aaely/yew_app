@@ -2,7 +2,7 @@ use std::{error::Error, rc::Rc};
 use serde::{Deserialize, Serialize};
 use web_sys::WebSocket;
 use yew::prelude::*;
-use crate::{models::*, user_local_storage::*};
+use crate::{models::*, recent_local_storage::{load_recent_from_local_storage, save_recent_to_local_storage}, user_local_storage::*};
 use gloo::console::log;
 
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
@@ -28,6 +28,7 @@ pub struct AppState {
     pub messages: Vec<String>,
     pub trailers: Vec<TrailerResponse>,
     pub last_view: String,
+    pub recent_trailers:Vec<RecentTrailers>,
 }
 
 impl Default for AppState {
@@ -40,6 +41,7 @@ impl Default for AppState {
             ws: None,
             messages: vec![],
             trailers: vec![],
+            recent_trailers: load_recent_from_local_storage().unwrap_or_default(),
         }
     }
 }
@@ -84,6 +86,25 @@ impl AppState {
         }
         Ok(())
     }
+    fn recent(&mut self, trailer: RecentTrailers) -> Result<(), Box<dyn Error>> {
+        let mut found = false;
+        let t = trailer.clone();
+        for trl in self.recent_trailers.iter_mut() {
+            if trl.trailer_id == t.trailer_id.clone() {
+                trl.trailer_id = t.trailer_id.clone();
+                trl.date = t.date.clone();
+                trl.time = t.time.clone();
+                trl.scac = t.scac.clone();
+                found = true;
+            }
+        }
+        if !found {
+            self.recent_trailers.push(trailer);
+            Ok(())
+        } else {
+            Ok(())
+        }
+    }
 }
 
 pub enum AppStateAction {
@@ -100,6 +121,8 @@ pub enum AppStateAction {
     HandleTrailerArrived(serde_json::Value),
     SetTrailers(Vec<TrailerResponse>),
     SetLastView(String),
+    AddToRecentlyScheduled(RecentTrailers),
+    ClearRecentlyScheduled,
 }
 
 impl Reducible for AppState {
@@ -114,11 +137,18 @@ impl Reducible for AppState {
             AppStateAction::ClearUser => Rc::new(Self { user: None, ..(*self).clone() }),
             AppStateAction::SetCurrentTrailer(trailer) => Rc::new(Self { current_trailer: Some(trailer), ..(*self).clone() }),
             AppStateAction::ClearCurrentTrailer => Rc::new(Self { current_trailer: None, ..(*self).clone() }),
+            AppStateAction::ClearRecentlyScheduled => Rc::new(Self { recent_trailers: vec![], ..(*self).clone() }),
             AppStateAction::SetCurrentView(view) => Rc::new(Self { current_view: view, ..(*self).clone() }),
             AppStateAction::SetLastView(view) => Rc::new(Self { last_view: view, ..(*self).clone() }),
             AppStateAction::ConnectWebSocket(ws) => Rc::new(Self { ws: Some(ws), ..(*self).clone() }),
             AppStateAction::DisconnectWebSocket => Rc::new(Self { ws: None, ..(*self).clone() }),
             AppStateAction::SetTrailers(trailers) => Rc::new(Self { trailers, ..(*self).clone()}),
+            AppStateAction::AddToRecentlyScheduled(trailer) => {
+                let mut new_state = (*self).clone();
+                let _ = new_state.recent(trailer);
+                let _ = save_recent_to_local_storage(&new_state.recent_trailers);
+                Rc::new(new_state)
+            }
             AppStateAction::HandleHotTrailer(data) => {
                 // Handle hot_trailer data
                 log!(format!("Handling hot_trailer: {:?}", data));

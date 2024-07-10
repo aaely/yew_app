@@ -4,8 +4,10 @@ mod trucks;
 mod daily_csv;
 mod user_local_storage;
 mod trailers_date_range;
+mod recent_local_storage;
 //mod server;
 mod load_details;
+mod recent;
 mod nav;
 mod todays_schedule;
 mod edit_trailer;
@@ -23,7 +25,7 @@ use nav::Nav;
 use todays_schedule::TodaysSchedule;
 use edit_trailer::EditTrailer;
 use trailers_date_range::TrailersDateRange;
-
+use recent::Recent;
 
 #[function_component(App)]
 fn app() -> Html {
@@ -34,7 +36,7 @@ fn app() -> Html {
     {
         let app_state_rc = app_state_rc.clone();
         use_effect_with((), move |_| {
-            let ws = WebSocket::new("ws://192.168.4.102:9001").unwrap();
+            let ws = WebSocket::new("ws://192.168.4.112:9001").unwrap();
             let app_state_rc = app_state_rc.clone();
             log!(format!("{:?}", ws.clone()));
 
@@ -94,6 +96,7 @@ fn app() -> Html {
                         "todays_schedule" => html! { <TodaysSchedule /> },
                         "edit_trailer" => html! { <EditTrailer /> },
                         "trailers_date_range" => html! { <TrailersDateRange /> },
+                        "recent" => html! { <Recent />},
                         _ => html! { <p>{ "Page not found" }</p> },
                     }
                 }
@@ -142,7 +145,7 @@ fn login() -> Html {
                     password: (*password).clone(),
                 };
 
-                match client.post("http://192.168.4.102:8000/login")
+                match client.post("http://192.168.4.112:8000/login")
                     .json(&request)
                     .send()
                     .await {
@@ -184,7 +187,7 @@ fn login() -> Html {
                     password: (*password).clone(),
                 };
 
-                match client.post("http://192.168.4.102:8000/register")
+                match client.post("http://192.168.4.112:8000/register")
                     .json(&request)
                     .send()
                     .await {

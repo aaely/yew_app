@@ -85,6 +85,14 @@ pub struct DateRangeTruckRequest {
     pub date2: String,
 }
 
+#[derive(Default, Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct RecentTrailers {
+    pub trailer_id: String,
+    pub date: String,
+    pub time: String,
+    pub scac: String,
+}
+
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SetScheduleRequest {

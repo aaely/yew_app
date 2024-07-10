@@ -72,7 +72,13 @@ pub fn edit_trailer() -> Html {
                             ContactEmail: form.contact_email.clone(),
                             Door: form.door.clone(),
                         };
-                        match client.post("http://192.168.4.102:8000/api/set_schedule")
+                        let recent = RecentTrailers {
+                            trailer_id: trailer.TrailerID.clone(),
+                            date: form.schedule_date.clone(),
+                            time: form.schedule_time.clone(),
+                            scac: form.scac.clone(),
+                        };
+                        match client.post("http://192.168.4.112:8000/api/set_schedule")
                             .header("Authorization", format!("Bearer {}", user.token))
                             .json(&request)
                             .send()
@@ -98,6 +104,7 @@ pub fn edit_trailer() -> Html {
                                                 }
                                             }).to_string();
                                             app_state.send_ws_message(&message);
+                                            app_state.dispatch(AppStateAction::AddToRecentlyScheduled(recent));
                                             app_state.dispatch(AppStateAction::SetCurrentView("landing".to_string()));
                                         },
                                         Err(error) => {

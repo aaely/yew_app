@@ -66,7 +66,7 @@ pub fn trailers_date_range() -> Html {
                     date2: date2.to_string()
                 };
                 if let Some(user) = &app_state.user {
-                    match client.post("http://192.168.4.102:8000/api/trucks_date_range")
+                    match client.post("http://192.168.4.112:8000/api/trucks_date_range")
                         .json(&request)
                         .header("Authorization", format!("Bearer {}", user.token))
                         .send()
@@ -104,7 +104,7 @@ pub fn trailers_date_range() -> Html {
         let data = app_state.trailers.clone();
         Callback::from(move |_: MouseEvent| {
             let csv_string = create_csv(&data);
-            let filename = "daily.csv";
+            let filename = "date_range.csv";
             let window = window().unwrap();
             let document = window.document().unwrap();
             let element = document.create_element("a").unwrap();
@@ -130,7 +130,7 @@ pub fn trailers_date_range() -> Html {
                         TrailerID: trailer_id.clone(),
                         ArrivalTime: "".to_string(),
                     };
-                    match client.post("http://192.168.4.102:8000/api/set_arrivalTime")
+                    match client.post("http://192.168.4.112:8000/api/set_arrivalTime")
                         .header("Authorization", format!("Bearer {}", user.token))
                         .json(&request)
                         .send()
@@ -176,7 +176,7 @@ pub fn trailers_date_range() -> Html {
                         TrailerID: trailer_id.clone(),
                         ArrivalTime: now.clone(),
                     };
-                    match client.post("http://192.168.4.102:8000/api/set_arrivalTime")
+                    match client.post("http://192.168.4.112:8000/api/set_arrivalTime")
                         .header("Authorization", format!("Bearer {}", user.token))
                         .json(&request)
                         .send()
@@ -221,7 +221,7 @@ pub fn trailers_date_range() -> Html {
                         TrailerID: trailer_id.clone(),
                     };
 
-                    match client.post("http://192.168.4.102:8000/api/hot_trailer")
+                    match client.post("http://192.168.4.112:8000/api/hot_trailer")
                         .header("Authorization", format!("Bearer {}", user.token))
                         .json(&request)
                         .send()

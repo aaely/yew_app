@@ -35,6 +35,9 @@ pub fn nav() -> Html {
                 <div onclick={update_view.clone().reform(move |_| "landing".to_string())}>
                     <p>{"All Trailers"}</p>
                 </div>
+                <div onclick={update_view.clone().reform(move |_| "recent".to_string())}>
+                    <p>{"Recently Scheduled"}</p>
+                </div>
                 <div onclick={update_view.clone().reform(move |_| "trailers_date_range".to_string())}>
                     <p>{"Date Range"}</p>
                 </div>
