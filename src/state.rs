@@ -2,7 +2,7 @@ use std::{error::Error, rc::Rc};
 use serde::{Deserialize, Serialize};
 use web_sys::WebSocket;
 use yew::prelude::*;
-use crate::{models::*, recent_local_storage::{load_recent_from_local_storage, save_recent_to_local_storage}, user_local_storage::*};
+use crate::{models::*, recent_local_storage::*, user_local_storage::*};
 use gloo::console::log;
 
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
@@ -36,7 +36,7 @@ impl Default for AppState {
         AppState {
             user: load_user_from_local_storage(),
             current_trailer: None,
-            current_view: "landing".to_string(),
+            current_view: load_view_from_session_storage().unwrap_or("landing".to_string()),
             last_view: "".to_string(),
             ws: None,
             messages: vec![],
@@ -138,7 +138,10 @@ impl Reducible for AppState {
             AppStateAction::SetCurrentTrailer(trailer) => Rc::new(Self { current_trailer: Some(trailer), ..(*self).clone() }),
             AppStateAction::ClearCurrentTrailer => Rc::new(Self { current_trailer: None, ..(*self).clone() }),
             AppStateAction::ClearRecentlyScheduled => Rc::new(Self { recent_trailers: vec![], ..(*self).clone() }),
-            AppStateAction::SetCurrentView(view) => Rc::new(Self { current_view: view, ..(*self).clone() }),
+            AppStateAction::SetCurrentView(view) => {
+                let _ = save_view_to_session_storage(&view);
+                Rc::new(Self { current_view: view, ..(*self).clone() })
+            },
             AppStateAction::SetLastView(view) => Rc::new(Self { last_view: view, ..(*self).clone() }),
             AppStateAction::ConnectWebSocket(ws) => Rc::new(Self { ws: Some(ws), ..(*self).clone() }),
             AppStateAction::DisconnectWebSocket => Rc::new(Self { ws: None, ..(*self).clone() }),
