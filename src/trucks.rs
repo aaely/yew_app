@@ -60,7 +60,7 @@ fn render_trucks() -> Html {
                         TrailerID: trailer_id.clone(),
                     };
 
-                    match client.post("http://192.168.4.112:8000/api/hot_trailer")
+                    match client.post("https://192.168.4.127:8443/api/hot_trailer")
                         .header("Authorization", format!("Bearer {}", user.token))
                         .json(&request)
                         .send()
@@ -104,7 +104,7 @@ fn render_trucks() -> Html {
                         TrailerID: trailer_id.clone(),
                         ArrivalTime: "".to_string(),
                     };
-                    match client.post("http://192.168.4.112:8000/api/set_arrivalTime")
+                    match client.post("http://192.168.4.127:8443/api/set_arrivalTime")
                         .header("Authorization", format!("Bearer {}", user.token))
                         .json(&request)
                         .send()
@@ -153,7 +153,7 @@ fn render_trucks() -> Html {
                         TrailerID: trailer_id.clone(),
                         ArrivalTime: now.clone(),
                     };
-                    match client.post("http://192.168.4.112:8000/api/set_arrivalTime")
+                    match client.post("https://192.168.4.127:8443/api/set_arrivalTime")
                         .header("Authorization", format!("Bearer {}", user.token))
                         .json(&request)
                         .send()
@@ -202,6 +202,7 @@ fn render_trucks() -> Html {
         let app_state = app_state.clone();
         Callback::from(move |trailer: TrailerResponse| {
             app_state.dispatch(AppStateAction::SetCurrentTrailer(trailer));
+            app_state.dispatch(AppStateAction::SetLastView(app_state.current_view.clone()));
             app_state.dispatch(AppStateAction::SetCurrentView("edit_trailer".to_string()));
         })
     };
@@ -217,7 +218,7 @@ fn render_trucks() -> Html {
                 spawn_local(async move {
                     let client = Client::new();
                     if let Some(user) = &app_state.user {
-                        match client.get("http://192.168.4.112:8000/api/schedule_trailer")
+                        match client.get("https://192.168.4.127:8443/api/schedule_trailer")
                             .header("Authorization", format!("Bearer {}", user.token))
                             .send()
                             .await {
@@ -261,74 +262,75 @@ fn render_trucks() -> Html {
                     </tr>
                 </thead>
                 <tbody>
-                { for app_state.trailers.iter().map(|trailer| 
+                { app_state.trailers.iter().enumerate().map(|(index, trailer)| {
                     if trailer.Schedule.IsHot {
-                    let trailer_id = trailer.TrailerID.clone();
-                    let trailer_id1 = trailer.TrailerID.clone();
-                    let trailer_id2 = trailer.TrailerID.clone();
-                    let tr = trailer.clone();
-                    let tr1 = trailer.clone();
-                    let user = app_state.user.as_ref().unwrap();
-                    html! { 
-                        <tr style="background-color: red; text-align: center;">
-                            <td>{trailer.Schedule.RequestDate.clone()}</td>
-                            <td><a onclick={load.clone().reform(move |_| tr.clone())}>{trailer.TrailerID.clone()}</a></td>
-                            <td>{trailer.Schedule.CarrierCode.clone()}</td>
-                            <td>{render_locations(&trailer.CiscoIDs)}</td>
-                            <td>{trailer.Schedule.LastFreeDate.clone()}</td>
-                            <td>{trailer.Schedule.ScheduleDate.clone()}</td>
-                            <td>{trailer.Schedule.ScheduleTime.clone()}</td>
-                            { if trailer.Schedule.ScheduleDate.len() > 0 && trailer.Schedule.ArrivalTime.len() < 1 && user.role.clone() == "write".to_string() {
-                                html! { <td><button onclick={arrived.clone().reform(move |_| trailer_id1.clone())}>{"Arrived"}</button></td> }
-                            } else if trailer.Schedule.ArrivalTime.len() > 0 && user.role.clone() == "write".to_string() {
-                                html! { <td><a onclick={un_arrived.clone().reform(move |_| trailer_id2.clone())}>{trailer.Schedule.ArrivalTime.clone()}</a></td>}
-                            } else {
-                                html! { <td>{trailer.Schedule.ArrivalTime.clone()}</td> }
-                            }}
-                            <td>{trailer.Schedule.DoorNumber.clone()}</td>
-                            <td><button style="background-color: #4CAF50; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={toggle_hot.clone().reform(move |_| trailer_id.clone())}>{"Mark Not Hot"}</button></td>
-                            { if user.role.clone() == "write".to_string() {
-                                html! {<td><button style="background-color: blue; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={edit.clone().reform(move |_| tr1.clone())}>{"Edit"}</button></td>}
-                                }
-                             else {
-                                html! {<></>}
-                            }}             
+                        let trailer_id = trailer.TrailerID.clone();
+                        let trailer_id1 = trailer.TrailerID.clone();
+                        let trailer_id2 = trailer.TrailerID.clone();
+                        let tr = trailer.clone();
+                        let tr1 = trailer.clone();
+                        let user = app_state.user.as_ref().unwrap();
+                        html! { 
+                            <tr style="background-color: red; text-align: center;">
+                                <td>{index + 1}</td>
+                                <td>{trailer.Schedule.RequestDate.clone()}</td>
+                                <td><a onclick={load.clone().reform(move |_| tr.clone())}>{trailer.TrailerID.clone()}</a></td>
+                                <td>{trailer.Schedule.CarrierCode.clone()}</td>
+                                <td>{render_locations(&trailer.CiscoIDs)}</td>
+                                <td>{trailer.Schedule.LastFreeDate.clone()}</td>
+                                <td>{trailer.Schedule.ScheduleDate.clone()}</td>
+                                <td>{trailer.Schedule.ScheduleTime.clone()}</td>
+                                { if trailer.Schedule.ScheduleDate.len() > 0 && trailer.Schedule.ArrivalTime.len() < 1 && user.role.clone() == "write".to_string() {
+                                    html! { <td><button onclick={arrived.clone().reform(move |_| trailer_id1.clone())}>{"Arrived"}</button></td> }
+                                } else if trailer.Schedule.ArrivalTime.len() > 0 && user.role.clone() == "write".to_string() {
+                                    html! { <td><a onclick={un_arrived.clone().reform(move |_| trailer_id2.clone())}>{trailer.Schedule.ArrivalTime.clone()}</a></td>}
+                                } else {
+                                    html! { <td>{trailer.Schedule.ArrivalTime.clone()}</td> }
+                                }}
+                                <td>{trailer.Schedule.DoorNumber.clone()}</td>
+                                <td><button style="background-color: #4CAF50; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={toggle_hot.clone().reform(move |_| trailer_id.clone())}>{"Mark Not Hot"}</button></td>
+                                { if user.role.clone() == "write".to_string() {
+                                    html! {<td><button style="background-color: blue; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={edit.clone().reform(move |_| tr1.clone())}>{"Edit"}</button></td>}
+                                } else {
+                                    html! {<></>}
+                                }}
                             </tr>
-                    }}  else {
-                    let trailer_id = trailer.TrailerID.clone();
-                    let trailer_id1 = trailer.TrailerID.clone();
-                    let trailer_id2 = trailer.TrailerID.clone();
-                    let tr = trailer.clone();
-                    let tr1 = trailer.clone();
-                    let user = app_state.user.as_ref().unwrap();
-                    html! {
-                        <tr style="text-align: center;">
-                            <td>{trailer.Schedule.RequestDate.clone()}</td>
-                            <td><a onclick={load.clone().reform(move |_| tr.clone())}>{trailer.TrailerID.clone()}</a></td>
-                            <td>{trailer.Schedule.CarrierCode.clone()}</td>
-                            <td>{render_locations(&trailer.CiscoIDs)}</td>
-                            <td>{trailer.Schedule.LastFreeDate.clone()}</td>
-                            <td>{trailer.Schedule.ScheduleDate.clone()}</td>
-                            <td>{trailer.Schedule.ScheduleTime.clone()}</td>
-                            { if trailer.Schedule.ScheduleDate.len() > 0 && trailer.Schedule.ArrivalTime.len() < 1 && user.role.clone() == "write".to_string() {
-                                html! { <td><button onclick={arrived.clone().reform(move |_| trailer_id1.clone())}>{"Arrived"}</button></td> }
-                            } else if trailer.Schedule.ArrivalTime.len() > 0 && user.role.clone() == "write".to_string() {
-                                html! { <td><a onclick={un_arrived.clone().reform(move |_| trailer_id2.clone())}>{trailer.Schedule.ArrivalTime.clone()}</a></td>}
-                            } else {
-                                html! { <td>{trailer.Schedule.ArrivalTime.clone()}</td> }
-                            }}
-                            <td>{trailer.Schedule.DoorNumber.clone()}</td>
-                            <td><button style="background-color: #F44336; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={toggle_hot.clone().reform(move |_| trailer_id.clone())}>{"Mark Hot"}</button></td>
-                            { if user.role.clone() == "write".to_string() {
-                                html! {<td><button style="background-color: blue; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={edit.clone().reform(move |_| tr1.clone())}>{"Edit"}</button></td>}
-                                }
-                              else {
-                                html! {<></>}
-                              }
-                            }
-                        </tr>
                         }
-                    })}
+                    } else {
+                        let trailer_id = trailer.TrailerID.clone();
+                        let trailer_id1 = trailer.TrailerID.clone();
+                        let trailer_id2 = trailer.TrailerID.clone();
+                        let tr = trailer.clone();
+                        let tr1 = trailer.clone();
+                        let user = app_state.user.as_ref().unwrap();
+                        html! {
+                            <tr style="text-align: center;">
+                                <td>{index + 1}</td>
+                                <td>{trailer.Schedule.RequestDate.clone()}</td>
+                                <td><a onclick={load.clone().reform(move |_| tr.clone())}>{trailer.TrailerID.clone()}</a></td>
+                                <td>{trailer.Schedule.CarrierCode.clone()}</td>
+                                <td>{render_locations(&trailer.CiscoIDs)}</td>
+                                <td>{trailer.Schedule.LastFreeDate.clone()}</td>
+                                <td>{trailer.Schedule.ScheduleDate.clone()}</td>
+                                <td>{trailer.Schedule.ScheduleTime.clone()}</td>
+                                { if trailer.Schedule.ScheduleDate.len() > 0 && trailer.Schedule.ArrivalTime.len() < 1 && user.role.clone() == "write".to_string() {
+                                    html! { <td><button onclick={arrived.clone().reform(move |_| trailer_id1.clone())}>{"Arrived"}</button></td> }
+                                } else if trailer.Schedule.ArrivalTime.len() > 0 && user.role.clone() == "write".to_string() {
+                                    html! { <td><a onclick={un_arrived.clone().reform(move |_| trailer_id2.clone())}>{trailer.Schedule.ArrivalTime.clone()}</a></td>}
+                                } else {
+                                    html! { <td>{trailer.Schedule.ArrivalTime.clone()}</td> }
+                                }}
+                                <td>{trailer.Schedule.DoorNumber.clone()}</td>
+                                <td><button style="background-color: #F44336; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={toggle_hot.clone().reform(move |_| trailer_id.clone())}>{"Mark Hot"}</button></td>
+                                { if user.role.clone() == "write".to_string() {
+                                    html! {<td><button style="background-color: blue; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={edit.clone().reform(move |_| tr1.clone())}>{"Edit"}</button></td>}
+                                } else {
+                                    html! {<></>}
+                                }}
+                            </tr>
+                        }
+                    }
+                }).collect::<Html>() }
                 </tbody>
                 </table>
             </div>

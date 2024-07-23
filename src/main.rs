@@ -14,10 +14,10 @@ mod edit_trailer;
 use std::rc::Rc;
 use models::*;
 use wasm_bindgen_futures::spawn_local;
-use yew::prelude::*;
+use yew::{prelude::*, virtual_dom::Key};
 use reqwest::Client;
 use gloo::console::log;
-use web_sys::{js_sys, wasm_bindgen::{closure::Closure, JsCast}, HtmlInputElement, MessageEvent, WebSocket};
+use web_sys::{js_sys, wasm_bindgen::{closure::Closure, JsCast}, KeyboardEvent, HtmlInputElement, MessageEvent, WebSocket};
 use trucks::Trucks;
 use state::*;
 use load_details::*;
@@ -33,10 +33,11 @@ fn app() -> Html {
     let app_state = use_reducer(|| AppState::default());
     let app_state_rc = Rc::new(app_state.clone());
     let app_st = Rc::new(app_state.clone());
+
     {
         let app_state_rc = app_state_rc.clone();
         use_effect_with((), move |_| {
-            let ws = WebSocket::new("ws://192.168.4.112:9001").unwrap();
+            let ws = WebSocket::new("wss://192.168.4.122:9001").unwrap();
             let app_state_rc = app_state_rc.clone();
             log!(format!("{:?}", ws.clone()));
 
@@ -145,7 +146,7 @@ fn login() -> Html {
                     password: (*password).clone(),
                 };
 
-                match client.post("http://192.168.4.112:8000/login")
+                match client.post("https://192.168.4.127:8443/login")
                     .json(&request)
                     .send()
                     .await {
@@ -170,6 +171,78 @@ fn login() -> Html {
         })
     };
 
+    let on_key_press = {
+        let username = username.clone();
+        let password = password.clone();
+        let local_view = local_view.clone();
+        let app_state = app_state.clone();
+
+        Callback::from(move |e: KeyboardEvent| {
+            if e.key() == "Enter" {
+                if *local_view == "login" {
+                    let username = username.clone();
+                    let password = password.clone();
+                    let app_state = app_state.clone();
+                    spawn_local(async move {
+                        let client = Client::new();
+                        let request = LoginRequest {
+                            username: (*username).clone(),
+                            password: (*password).clone(),
+                        };
+
+                        match client.post("https://192.168.4.127:8443/login")
+                            .json(&request)
+                            .send()
+                            .await {
+                            Ok(resp) => {
+                                match resp.json::<LoginResponse>().await {
+                                    Ok(login_response) => {
+                                        let user = User {
+                                            username: login_response.user.username,
+                                            role: login_response.user.role,
+                                            token: login_response.token,
+                                            refresh_token: login_response.refresh_token,
+                                        };
+                                        app_state.dispatch(AppStateAction::SetUser(user));
+                                        app_state.dispatch(AppStateAction::SetCurrentView("landing".to_string()));
+                                    },
+                                    Err(error) => log!(format!("Failed to parse JSON: {:?}", error)),
+                                }
+                            },
+                            Err(error) => log!(format!("Failed to parse JSON: {:?}", error)),
+                        }
+                    });
+                } else {
+                    let username = username.clone();
+                    let password = password.clone();
+                    let local_view = local_view.clone();
+                    spawn_local(async move {
+                        let client = Client::new();
+                        let request = LoginRequest {
+                            username: (*username).clone(),
+                            password: (*password).clone(),
+                        };
+
+                        match client.post("https://192.168.4.127:8443/register")
+                            .json(&request)
+                            .send()
+                            .await {
+                            Ok(resp) => {
+                                match resp.json::<String>().await {
+                                    Ok(_registration_response) => {
+                                        local_view.set("login".to_string());
+                                    },
+                                    Err(error) => log!(format!("Failed to parse JSON: {:?}", error)),
+                                }
+                            },
+                            Err(error) => log!(format!("Failed to parse JSON: {:?}", error)),
+                        }
+                    });
+                }
+            }
+        })
+    };
+
     let on_register = {
         let username = username.clone();
         let password = password.clone();
@@ -187,7 +260,7 @@ fn login() -> Html {
                     password: (*password).clone(),
                 };
 
-                match client.post("http://192.168.4.112:8000/register")
+                match client.post("https://192.168.4.127:8443/register")
                     .json(&request)
                     .send()
                     .await {
@@ -241,8 +314,8 @@ fn login() -> Html {
                 "register" => html! {
                     <>
                         <h1>{ "Register" }</h1>
-                        <input style="text-align: center;" type="text" placeholder="Username" value={(*username).clone()} oninput={on_username_input} />
-                        <input style="text-align: center;" type="password" placeholder="Password" value={(*password).clone()} oninput={on_password_input} />
+                        <input style="text-align: center;" type="text" placeholder="Username" value={(*username).clone()} oninput={on_username_input} onkeypress={on_key_press.clone()} />
+                        <input style="text-align: center;" type="password" placeholder="Password" value={(*password).clone()} oninput={on_password_input} onkeypress={on_key_press.clone()} />
                         <div style="margin: 3%; display: flex; width: 30vw; flex-direction: row; justify-content: space-evenly;">
                             <button style="background-color: green; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;"  onclick={on_register}>{ "Register" }</button>
                             <button style="background-color: blue; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={set_login}>{ "Login" }</button>
@@ -252,8 +325,8 @@ fn login() -> Html {
                 "login" => html! {
                     <>
                         <h1>{ "Login" }</h1>
-                        <input style="text-align: center;" type="text" placeholder="Username" value={(*username).clone()} oninput={on_username_input} />
-                        <input style="text-align: center;" type="password" placeholder="Password" value={(*password).clone()} oninput={on_password_input} />
+                        <input style="text-align: center;" type="text" placeholder="Username" value={(*username).clone()} oninput={on_username_input} onkeypress={on_key_press.clone()} />
+                        <input style="text-align: center;" type="password" placeholder="Password" value={(*password).clone()} oninput={on_password_input} onkeypress={on_key_press.clone()} />
                         <div style="margin: 3%; display: flex; width: 30vw; flex-direction: row; justify-content: space-evenly;">
                             <button style="background-color: green; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={on_login}>{ "Login" }</button>
                             <button style="background-color: blue; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={set_register}>{ "Register" }</button>

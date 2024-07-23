@@ -62,7 +62,7 @@ pub fn daily_csv() -> Html {
                     date: format_date()
                 };
                 if let Some(user) = &app_state.user {
-                    match client.post("http://192.168.4.102:8000/api/trailers")
+                    match client.post("http://192.168.4.122:8000/api/trailers")
                         .json(&request)
                         .header("Authorization", format!("Bearer {}", user.token))
                         .send()

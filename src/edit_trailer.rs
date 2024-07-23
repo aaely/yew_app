@@ -78,7 +78,7 @@ pub fn edit_trailer() -> Html {
                             time: form.schedule_time.clone(),
                             scac: form.scac.clone(),
                         };
-                        match client.post("http://192.168.4.112:8000/api/set_schedule")
+                        match client.post("http://192.168.4.122:8000/api/set_schedule")
                             .header("Authorization", format!("Bearer {}", user.token))
                             .json(&request)
                             .send()
