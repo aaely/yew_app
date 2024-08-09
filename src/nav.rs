@@ -44,6 +44,9 @@ pub fn nav() -> Html {
                 <div onclick={update_view.clone().reform(move |_| "todays_schedule".to_string())}>
                     <p>{"Today's Schedule"}</p>
                 </div>
+                <div onclick={update_view.clone().reform(move |_| "upload".to_string())}>
+                    <p>{"Upload CSV"}</p>
+                </div>
                 <div onclick={logout}>
                     <p>{"Logout"}</p>
                 </div>

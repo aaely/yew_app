@@ -5,6 +5,7 @@ mod daily_csv;
 mod user_local_storage;
 mod trailers_date_range;
 mod recent_local_storage;
+mod upload;
 //mod server;
 mod load_details;
 mod recent;
@@ -26,6 +27,7 @@ use todays_schedule::TodaysSchedule;
 use edit_trailer::EditTrailer;
 use trailers_date_range::TrailersDateRange;
 use recent::Recent;
+use upload::Upload;
 
 #[function_component(App)]
 fn app() -> Html {
@@ -37,7 +39,7 @@ fn app() -> Html {
     {
         let app_state_rc = app_state_rc.clone();
         use_effect_with((), move |_| {
-            let ws = WebSocket::new("wss://192.168.4.122:9001").unwrap();
+            let ws = WebSocket::new("ws://192.168.4.162:9001").unwrap();
             let app_state_rc = app_state_rc.clone();
             log!(format!("{:?}", ws.clone()));
 
@@ -98,6 +100,7 @@ fn app() -> Html {
                         "edit_trailer" => html! { <EditTrailer /> },
                         "trailers_date_range" => html! { <TrailersDateRange /> },
                         "recent" => html! { <Recent />},
+                        "upload" => html! { <Upload /> },
                         _ => html! { <p>{ "Page not found" }</p> },
                     }
                 }
@@ -146,7 +149,7 @@ fn login() -> Html {
                     password: (*password).clone(),
                 };
 
-                match client.post("https://192.168.4.127:8443/login")
+                match client.post("http://192.168.4.162:8000/login")
                     .json(&request)
                     .send()
                     .await {
@@ -190,7 +193,7 @@ fn login() -> Html {
                             password: (*password).clone(),
                         };
 
-                        match client.post("https://192.168.4.127:8443/login")
+                        match client.post("http://192.168.4.162:8000/login")
                             .json(&request)
                             .send()
                             .await {
@@ -223,7 +226,7 @@ fn login() -> Html {
                             password: (*password).clone(),
                         };
 
-                        match client.post("https://192.168.4.127:8443/register")
+                        match client.post("http://192.168.4.162:8000/register")
                             .json(&request)
                             .send()
                             .await {
@@ -260,7 +263,7 @@ fn login() -> Html {
                     password: (*password).clone(),
                 };
 
-                match client.post("https://192.168.4.127:8443/register")
+                match client.post("http://192.168.4.162:8000/register")
                     .json(&request)
                     .send()
                     .await {

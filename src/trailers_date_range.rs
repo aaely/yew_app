@@ -67,7 +67,7 @@ pub fn trailers_date_range() -> Html {
                     date2: date2.to_string()
                 };
                 if let Some(user) = &app_state.user {
-                    match client.post("http://192.168.4.122:8000/api/trucks_date_range")
+                    match client.post("https://192.168.4.127:8443/api/trucks_date_range")
                         .json(&request)
                         .header("Authorization", format!("Bearer {}", user.token))
                         .send()
@@ -131,7 +131,7 @@ pub fn trailers_date_range() -> Html {
                         TrailerID: trailer_id.clone(),
                         ArrivalTime: "".to_string(),
                     };
-                    match client.post("http://192.168.4.122:8000/api/set_arrivalTime")
+                    match client.post("https://192.168.4.127:8443/api/set_arrivalTime")
                         .header("Authorization", format!("Bearer {}", user.token))
                         .json(&request)
                         .send()
@@ -177,7 +177,7 @@ pub fn trailers_date_range() -> Html {
                         TrailerID: trailer_id.clone(),
                         ArrivalTime: now.clone(),
                     };
-                    match client.post("http://192.168.4.122:8000/api/set_arrivalTime")
+                    match client.post("https://192.168.4.127:8443/api/set_arrivalTime")
                         .header("Authorization", format!("Bearer {}", user.token))
                         .json(&request)
                         .send()
@@ -222,7 +222,7 @@ pub fn trailers_date_range() -> Html {
                         TrailerID: trailer_id.clone(),
                     };
 
-                    match client.post("http://192.168.4.122:8000/api/hot_trailer")
+                    match client.post("https://192.168.4.127:8443/api/hot_trailer")
                         .header("Authorization", format!("Bearer {}", user.token))
                         .json(&request)
                         .send()
