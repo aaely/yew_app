@@ -39,7 +39,7 @@ fn app() -> Html {
     {
         let app_state_rc = app_state_rc.clone();
         use_effect_with((), move |_| {
-            let ws = WebSocket::new("ws://192.168.4.162:9001").unwrap();
+            let ws = WebSocket::new("ws://192.168.4.172:9001").unwrap();
             let app_state_rc = app_state_rc.clone();
             log!(format!("{:?}", ws.clone()));
 
@@ -149,7 +149,7 @@ fn login() -> Html {
                     password: (*password).clone(),
                 };
 
-                match client.post("http://192.168.4.162:8000/login")
+                match client.post("http://192.168.4.172:8000/login")
                     .json(&request)
                     .send()
                     .await {
@@ -193,7 +193,7 @@ fn login() -> Html {
                             password: (*password).clone(),
                         };
 
-                        match client.post("http://192.168.4.162:8000/login")
+                        match client.post("http://192.168.4.172:8000/login")
                             .json(&request)
                             .send()
                             .await {
@@ -226,7 +226,7 @@ fn login() -> Html {
                             password: (*password).clone(),
                         };
 
-                        match client.post("http://192.168.4.162:8000/register")
+                        match client.post("http://192.168.4.172:8000/register")
                             .json(&request)
                             .send()
                             .await {
@@ -263,7 +263,7 @@ fn login() -> Html {
                     password: (*password).clone(),
                 };
 
-                match client.post("http://192.168.4.162:8000/register")
+                match client.post("http://192.168.4.172:8000/register")
                     .json(&request)
                     .send()
                     .await {
