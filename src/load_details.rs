@@ -79,7 +79,7 @@ pub fn load_details() -> Html {
                             param: trl.TrailerID.clone()
                         };
                         if let Some(user) = &app_state.user {
-                            match client.post("https://192.168.4.160:8443/api/get_load_info")
+                            match client.post("http://192.168.4.172:8000/api/get_load_info")
                                 .json(&request)
                                 .header("Authorization", format!("Bearer {}", user.token))
                                 .send()

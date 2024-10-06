@@ -86,6 +86,63 @@ pub struct DateRangeTruckRequest {
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Default, Clone)]
+pub struct GmapItem {
+    #[serde(rename = "PLANT")]
+    pub plant: String,
+    #[serde(rename = "F/U")]
+    f_u: String,
+    #[serde(rename = "PART")]
+    pub part: String,
+    #[serde(rename = "PART NAME")]
+    pub part_name: String,
+    #[serde(rename = "DUNS")]
+    duns: String,
+    #[serde(rename = "SUPPLIER NAME")]
+    supplier_name: String,
+    #[serde(rename = "PLANT BANK")]
+    plant_bank: String,
+    #[serde(rename = "PLANT BANK OVERRIDE")]               
+    plant_bank_override: String,
+    #[serde(rename = "PLANT BANK OVERRIDE USER")]
+    plant_bank_override_user: String,
+    #[serde(rename = "EFFECTIVE DATE")]
+    effective_date: String,
+    #[serde(rename = "PLANT CBAL")]
+    plant_cbal: Option<i32>,
+    #[serde(rename = "PLANT DOH")]
+    plant_doh: Option<f64>,
+    #[serde(rename = "ASL BANK")]
+    pub asl_bank: Option<i32>,
+    #[serde(rename = "ASL QTY")]
+    pub asl_qty: i32,
+    #[serde(rename = "Day 1 QTY OFFSET")]
+    day_1_qty_offset: Option<i32>,
+    #[serde(rename = "IN TRANSIT ASL TO PLANT")]
+    pub in_transit_asl_to_plant: Option<i32>,         
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Default, Clone)]
+pub struct ScaleItem {
+    #[serde(rename = "ITEM")]
+    pub item: String,
+    #[serde(rename = "Textbox4")]
+    pub plant: String,
+    #[serde(rename = "OH")]
+    pub quantity: i32,
+    #[serde(rename = "INVENTORY_STS")]
+    pub status: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Default, Clone)]
+pub struct ItemCompare {
+    pub part: String,
+    pub scale_quantity: i32,
+    pub asl_quantity: i32,
+    pub dif: i32,
+    pub in_transit: i32
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Default, Clone)]
 pub struct Item {
     #[serde(rename = "Part")]
     pub part: String,
@@ -181,6 +238,89 @@ pub struct Item {
     pub area: Option<u32>,  // Made optional
 }
 
+#[derive(Serialize, Deserialize, Debug, PartialEq, Default, Clone)]
+pub struct ItemDetails {
+    #[serde(rename = "ITEM")]
+    pub item: String,
+
+    #[serde(rename = "VELOCITY")]
+    pub velocity: String,
+
+    #[serde(rename = "EA QTY")]
+    pub ea_qty: Option<i32>,
+
+    #[serde(rename = "EA LENGTH")]
+    pub ea_length: Option<f32>,
+
+    #[serde(rename = "EA WIDTH")]
+    pub ea_width: Option<f32>,
+
+    #[serde(rename = "EA HEIGHT")]
+    pub ea_height: Option<f32>,
+
+    #[serde(rename = "EA WEIGHT")]
+    pub ea_weight: Option<f32>,
+
+    #[serde(rename = "CTN QTY")]
+    pub ctn_qty: i32,
+
+    #[serde(rename = "CTN LENGTH")]
+    pub ctn_length: Option<f32>,
+
+    #[serde(rename = "CTN WIDTH")]
+    pub ctn_width: Option<f32>,
+
+    #[serde(rename = "CTN HEIGHT")]
+    pub ctn_height: Option<f32>,
+
+    #[serde(rename = "CTN WEIGHT")]
+    pub ctn_weight: Option<f32>,
+
+    #[serde(rename = "PAL QTY")]
+    pub pal_qty: i32,
+
+    #[serde(rename = "PAL LENGTH")]
+    pub pal_length: Option<f32>,
+
+    #[serde(rename = "PAL WIDTH")]
+    pub pal_width: Option<f32>,
+
+    #[serde(rename = "PAL HEIGHT")]
+    pub pal_height: Option<f32>,
+
+    #[serde(rename = "PAL WEIGHT")]
+    pub pal_weight: Option<f32>,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Default, Clone)]
+pub struct ItemMaster {
+    pub part: String,
+    pub desc: String,
+    pub company: String,
+    pub blank: String,
+    pub class: String,
+    pub blank2: String,
+    pub velocity: String,
+    pub location: String,
+    pub wide: String,
+    pub size: String,
+    pub ea_qty: i32,
+    pub ea_len: f32,
+    pub ea_wid: f32,
+    pub ea_hei: f32,
+    pub ea_wt: f32,
+    pub std_pk: i32,
+    pub pri_len: f32,
+    pub pri_wid: f32,
+    pub pri_hei: f32,
+    pub pri_wt: f32,
+    pub pal_qty: i32,
+    pub pal_len: f32,
+    pub pal_wid: f32,
+    pub pal_hei: f32,
+    pub pal_wt: f32,
+}
+
 #[derive(Default, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RecentTrailers {
     pub trailer_id: String,
@@ -188,7 +328,6 @@ pub struct RecentTrailers {
     pub time: String,
     pub scac: String,
 }
-
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SetScheduleRequest {

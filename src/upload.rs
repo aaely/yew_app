@@ -4,9 +4,11 @@ use yew::prelude::*;
 use reqwest::Client;
 use gloo::console::log;
 use std::{fmt::Write, rc::Rc};
-use crate::models::Item;
+use crate::{models::Item, gmap::Gmap, fix_parts::FixParts};
 use csv::ReaderBuilder;
 use std::collections::HashSet;
+
+
 
 fn plant_code(code: &str) -> String {
     match code {
@@ -174,6 +176,10 @@ pub fn upload() -> Html {
                 }
             }
             <PartsUpload />
+            <br />
+            <Gmap />
+            <br />
+            <FixParts />
         </div>
     }
 }
