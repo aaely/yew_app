@@ -18,6 +18,11 @@ pub struct ArrivalMessage {
     pub ArrivalTime: String,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct Stat6Message {
+    pub TailerID: String
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct LoadInfoRequest {
     pub param: String,
@@ -110,7 +115,7 @@ pub struct GmapItem {
     #[serde(rename = "PLANT CBAL")]
     plant_cbal: Option<i32>,
     #[serde(rename = "PLANT DOH")]
-    plant_doh: Option<f64>,
+    pub plant_doh: String,
     #[serde(rename = "ASL BANK")]
     pub asl_bank: Option<i32>,
     #[serde(rename = "ASL QTY")]
@@ -125,21 +130,42 @@ pub struct GmapItem {
 pub struct ScaleItem {
     #[serde(rename = "ITEM")]
     pub item: String,
-    #[serde(rename = "Textbox4")]
-    pub plant: String,
-    #[serde(rename = "OH")]
-    pub quantity: i32,
-    #[serde(rename = "INVENTORY_STS")]
-    pub status: String,
+    #[serde(rename = "LOCATION")]
+    pub location: String,
+    #[serde(rename = "OH_QTY")]
+    pub oh_quantity: i32,
+    #[serde(rename = "AL_QTY")]
+    pub al_quantity: i32,
+    #[serde(rename = "AV_QTY")]
+    pub av_quantity: i32,
+    pub missing_quantity: Option<i32>,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Default, Clone)]
+pub struct ScaleItemMap {
+    #[serde(rename = "ITEM")]
+    pub item: String,
+    #[serde(rename = "OH_QTY")]
+    pub oh_quantity: i32,
+    #[serde(rename = "AL_QTY")]
+    pub al_quantity: i32,
+    #[serde(rename = "AV_QTY")]
+    pub av_quantity: i32,
+    pub missing_quantity: Option<i32>,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Default, Clone)]
 pub struct ItemCompare {
     pub part: String,
-    pub scale_quantity: i32,
+    pub scale_oh_quantity: i32,
+    pub scale_al_quantity: i32,
+    pub scale_missing_quantity: i32,
+    pub scale_actual_quantity: i32,
     pub asl_quantity: i32,
     pub dif: i32,
-    pub in_transit: i32
+    pub in_transit: i32,
+    pub plant: String,
+    pub plant_doh: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Default, Clone)]
@@ -363,6 +389,7 @@ pub struct Schedule {
     pub LastFreeDate: String,
     pub LoadStatus: String,
     pub RequestDate: String,
+    pub IsStat6: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq)]

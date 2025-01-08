@@ -20,7 +20,7 @@ use wasm_bindgen_futures::spawn_local;
 use yew::{prelude::*, virtual_dom::Key};
 use reqwest::Client;
 use gloo::console::log;
-use web_sys::{js_sys, wasm_bindgen::{closure::Closure, JsCast}, KeyboardEvent, HtmlInputElement, MessageEvent, WebSocket};
+use web_sys::{js_sys::{self, Object}, wasm_bindgen::{self, closure::Closure, prelude::wasm_bindgen, JsCast, JsValue}, window, HtmlInputElement, KeyboardEvent, MessageEvent, Navigator, WebSocket};
 use trucks::Trucks;
 use state::*;
 use load_details::*;
@@ -30,6 +30,11 @@ use edit_trailer::EditTrailer;
 use trailers_date_range::TrailersDateRange;
 use recent::Recent;
 use upload::Upload;
+
+#[wasm_bindgen]
+extern "C" {
+    fn saveCredentials(username: &str, password: &str) -> js_sys::Promise;
+}
 
 #[function_component(App)]
 fn app() -> Html {
@@ -41,7 +46,7 @@ fn app() -> Html {
     {
         let app_state_rc = app_state_rc.clone();
         use_effect_with((), move |_| {
-            let ws = WebSocket::new("ws://192.168.4.172:9001").unwrap();
+            let ws = WebSocket::new("ws://localhost:9001").unwrap();
             let app_state_rc = app_state_rc.clone();
             log!(format!("{:?}", ws.clone()));
 
@@ -139,7 +144,8 @@ fn login() -> Html {
         let password = password.clone();
         let app_state = app_state.clone();
 
-        Callback::from(move |_| {
+        Callback::from(move |event: MouseEvent| {
+            event.prevent_default();
             let username = username.clone();
             let password = password.clone();
             let app_state = app_state.clone();
@@ -151,7 +157,7 @@ fn login() -> Html {
                     password: (*password).clone(),
                 };
 
-                match client.post("http://192.168.4.172:8000/login")
+                match client.post("http://localhost:8000/login")
                     .json(&request)
                     .send()
                     .await {
@@ -166,6 +172,13 @@ fn login() -> Html {
                                 };
                                 app_state.dispatch(AppStateAction::SetUser(user));
                                 app_state.dispatch(AppStateAction::SetCurrentView("landing".to_string()));
+                                unsafe { let _promise = saveCredentials(&username, &password)
+                                    .then(&Closure::once(|_result| {
+                                        log!(format!("Credentials stored successfully!"));
+                                    }))
+                                    .catch(&Closure::once(|err| {
+                                        log!(format!("Failed to store credentials: {:?}", err));
+                                    }));}
                             },
                             Err(error) => log!(format!("Failed to parse JSON: {:?}", error)),
                         }
@@ -195,7 +208,7 @@ fn login() -> Html {
                             password: (*password).clone(),
                         };
 
-                        match client.post("http://192.168.4.172:8000/login")
+                        match client.post("http://localhost:8000/login")
                             .json(&request)
                             .send()
                             .await {
@@ -228,7 +241,7 @@ fn login() -> Html {
                             password: (*password).clone(),
                         };
 
-                        match client.post("http://192.168.4.172:8000/register")
+                        match client.post("http://localhost:8000/register")
                             .json(&request)
                             .send()
                             .await {
@@ -253,7 +266,8 @@ fn login() -> Html {
         let password = password.clone();
         let app_state = app_state.clone();
         let local_view = local_view.clone();
-        Callback::from(move |_| {
+        Callback::from(move |event: MouseEvent| {
+            event.prevent_default();
             let username = username.clone();
             let password = password.clone();
             let app_state = app_state.clone();
@@ -265,7 +279,7 @@ fn login() -> Html {
                     password: (*password).clone(),
                 };
 
-                match client.post("http://192.168.4.172:8000/register")
+                match client.post("http://localhost:8000/register")
                     .json(&request)
                     .send()
                     .await {
@@ -301,14 +315,16 @@ fn login() -> Html {
 
     let set_register = {
         let local_view = local_view.clone();
-        Callback::from(move |_| {
+        Callback::from(move |event: MouseEvent| {
+            event.prevent_default();
             local_view.set("register".to_string());
         })
     };
 
     let set_login = {
         let local_view = local_view.clone();
-        Callback::from(move |_| {
+        Callback::from(move |event: MouseEvent| {
+            event.prevent_default();
             local_view.set("login".to_string());
         })
     };
@@ -319,10 +335,10 @@ fn login() -> Html {
                 "register" => html! {
                     <>
                         <h1>{ "Register" }</h1>
-                        <input style="text-align: center;" type="text" placeholder="Username" value={(*username).clone()} oninput={on_username_input} onkeypress={on_key_press.clone()} />
-                        <input style="text-align: center;" type="password" placeholder="Password" value={(*password).clone()} oninput={on_password_input} onkeypress={on_key_press.clone()} />
+                        <input style="text-align: center;" type="text" placeholder="Username" autocomplete="username" value={(*username).clone()} oninput={on_username_input} onkeypress={on_key_press.clone()} />
+                        <input style="text-align: center;" type="password" placeholder="Password" autocomplete="password" value={(*password).clone()} oninput={on_password_input} onkeypress={on_key_press.clone()} />
                         <div style="margin: 3%; display: flex; width: 30vw; flex-direction: row; justify-content: space-evenly;">
-                            <button style="background-color: green; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;"  onclick={on_register}>{ "Register" }</button>
+                            <button type="submit" style="background-color: green; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;"  onclick={on_register}>{ "Register" }</button>
                             <button style="background-color: blue; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={set_login}>{ "Login" }</button>
                         </div>
                     </>
@@ -330,10 +346,10 @@ fn login() -> Html {
                 "login" => html! {
                     <>
                         <h1>{ "Login" }</h1>
-                        <input style="text-align: center;" type="text" placeholder="Username" value={(*username).clone()} oninput={on_username_input} onkeypress={on_key_press.clone()} />
-                        <input style="text-align: center;" type="password" placeholder="Password" value={(*password).clone()} oninput={on_password_input} onkeypress={on_key_press.clone()} />
+                        <input style="text-align: center;" type="text" placeholder="Username" autocomplete="username" value={(*username).clone()} oninput={on_username_input} onkeypress={on_key_press.clone()} />
+                        <input style="text-align: center;" type="password" placeholder="Password" autocomplete="password" value={(*password).clone()} oninput={on_password_input} onkeypress={on_key_press.clone()} />
                         <div style="margin: 3%; display: flex; width: 30vw; flex-direction: row; justify-content: space-evenly;">
-                            <button style="background-color: green; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={on_login}>{ "Login" }</button>
+                            <button type="submit" style="background-color: green; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={on_login}>{ "Login" }</button>
                             <button style="background-color: blue; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={set_register}>{ "Register" }</button>
                         </div>
                     </>

@@ -23,6 +23,17 @@
     
             document.body.removeChild(element);
         }
+        function saveCredentials(username, password) {
+            if (navigator.credentials) {
+                const cred = new PasswordCredential({
+                    id: username,
+                    password: password,
+                });
+                return navigator.credentials.store(cred);
+            } else {
+                return Promise.reject("Credentials API not supported.");
+            }
+        }
     </script>
 </body>
 </html>

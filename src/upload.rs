@@ -106,6 +106,8 @@ fn create_csv(data: &Vec<Item>) -> String {
 pub fn upload() -> Html {
     let file = use_state(|| None);
     let file_name = use_state(|| None);
+    let is_error = use_state(|| false);
+    let msg = use_state(|| "".to_string());
 
     let on_file_change = {
         let file = file.clone();
