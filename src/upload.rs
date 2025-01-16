@@ -5,7 +5,7 @@ use reqwest::Client;
 use gloo::console::log;
 use std::{fmt::Write, rc::Rc};
 use crate::{models::Item, gmap::Gmap, fix_parts::FixParts};
-use csv::ReaderBuilder;
+use csv::{ReaderBuilder, StringRecord};
 use std::collections::HashSet;
 
 
@@ -206,9 +206,23 @@ pub fn parts_upload() -> Html {
                             .from_reader(file_content.as_bytes()); // Reading as bytes
 
                         let mut new_data = Vec::<Item>::new();
-                        for result in rdr.deserialize() {
+                        for result in rdr.records() {
                             match result {
-                                Ok(record) => new_data.push(record), // Correct type deserialization
+                                Ok(record) => {
+                                    let mut modified_values: Vec<String> = record.iter().map(|v| v.to_string()).collect();
+
+                                    // Clean the 21st column (index 20)
+                                    if let Some(value) = modified_values.get_mut(20) { // Mutable reference to the 21st column
+                                        *value = value.replace(',', ""); // Remove commas
+                                    }
+
+                                    // Convert back to a StringRecord
+                                    let modified_record = StringRecord::from(modified_values);
+                                    match modified_record.deserialize::<Item>(None) {
+                                        Ok(item) => new_data.push(item),
+                                        Err(error) => log!(format!("Error deserializing row: {:?}", error)),
+                                    }
+                                }, // Correct type deserialization
                                 Err(err) => log!(format!("Error deserializing row: {:?}", err)),
                             }
                         }
