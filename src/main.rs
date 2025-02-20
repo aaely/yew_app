@@ -7,6 +7,8 @@ mod trailers_date_range;
 mod recent_local_storage;
 mod upload;
 mod gmap;
+mod new_shipment;
+mod shipments;
 //mod server;
 mod load_details;
 mod fix_parts;

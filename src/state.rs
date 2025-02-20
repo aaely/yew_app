@@ -29,6 +29,7 @@ pub struct AppState {
     pub trailers: Vec<TrailerResponse>,
     pub last_view: String,
     pub recent_trailers:Vec<RecentTrailers>,
+    pub shipments: Vec<Shipment>,
 }
 
 impl Default for AppState {
@@ -42,6 +43,7 @@ impl Default for AppState {
             messages: vec![],
             trailers: vec![],
             recent_trailers: load_recent_from_local_storage().unwrap_or_default(),
+            shipments: vec![],
         }
     }
 }
@@ -86,6 +88,27 @@ impl AppState {
         }
         Ok(())
     }
+    fn update_shipment(&mut self, msg: &str) -> Result<(), Box<dyn Error>> {
+        let shipment_message: Shipment = serde_json::from_str(msg)?;
+        for shipment in self.shipments.iter_mut() {
+            if shipment.LoadId == shipment_message.LoadId {
+                shipment.ScheduleDate = shipment_message.ScheduleDate;
+                shipment.ScheduleTime = shipment_message.ScheduleTime;
+                shipment.ArrivalTime = shipment_message.ArrivalTime;
+                shipment.DepartTime = shipment_message.DepartTime;
+                shipment.Dock = shipment_message.Dock;
+                shipment.Door = shipment_message.Door;
+                shipment.LoadNum = shipment_message.LoadNum;
+                shipment.Status = shipment_message.Status;
+                shipment.Picker = shipment_message.Picker;
+                shipment.PickStartTime = shipment_message.PickStartTime;
+                shipment.VerifiedBy = shipment_message.VerifiedBy;
+                shipment.TrailerNum = shipment_message.TrailerNum;
+                break;
+            }
+        }
+        Ok(())
+    }
     fn recent(&mut self, trailer: RecentTrailers) -> Result<(), Box<dyn Error>> {
         let mut found = false;
         let t = trailer.clone();
@@ -123,6 +146,8 @@ pub enum AppStateAction {
     SetLastView(String),
     AddToRecentlyScheduled(RecentTrailers),
     ClearRecentlyScheduled,
+    HandleUpdateShipment(serde_json::Value),
+    SetShipments(Vec<Shipment>),
 }
 
 impl Reducible for AppState {
@@ -142,6 +167,15 @@ impl Reducible for AppState {
                 let _ = save_view_to_session_storage(&view);
                 Rc::new(Self { current_view: view, ..(*self).clone() })
             },
+            AppStateAction::HandleUpdateShipment(data) => {
+                log!(format!("Handling updated shipment: {:?}", data));
+                let mut new_state = (*self).clone();
+                if let Some(message) = data.get("message").and_then(|v| v.as_str()) {
+                    let _ = new_state.update_shipment(message);
+                }
+                Rc::new(new_state)
+            },
+            AppStateAction::SetShipments(shipments) => Rc::new(Self { shipments, ..(*self).clone() }),
             AppStateAction::SetLastView(view) => Rc::new(Self { last_view: view, ..(*self).clone() }),
             AppStateAction::ConnectWebSocket(ws) => Rc::new(Self { ws: Some(ws), ..(*self).clone() }),
             AppStateAction::DisconnectWebSocket => Rc::new(Self { ws: None, ..(*self).clone() }),
@@ -184,6 +218,7 @@ impl Reducible for AppState {
                 }
                 Rc::new(new_state)
             },
+            _ => todo!(),
         }
     }
 }

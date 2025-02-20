@@ -154,6 +154,28 @@ pub struct ScaleItemMap {
     pub missing_quantity: Option<i32>,
 }
 
+#[derive(Serialize)]
+pub struct LoadCountRequest {
+    prefix: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Default, Clone)]
+pub struct Shipment {
+    pub ScheduleDate: String,
+    pub ScheduleTime: String,
+    pub ArrivalTime: String,
+    pub DepartTime: String,
+    pub Dock: String,
+    pub Door: String,
+    pub LoadId: String,
+    pub LoadNum: String,
+    pub Status: String,
+    pub Picker: String,
+    pub PickStartTime: String,
+    pub VerifiedBy: String,
+    pub TrailerNum: String,
+}
+
 #[derive(Serialize, Deserialize, Debug, PartialEq, Default, Clone)]
 pub struct ItemCompare {
     pub part: String,
@@ -375,6 +397,19 @@ pub struct MyFormData {
     pub schedule_time: String,
     pub last_free_date: String,
     pub scac: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ShipmentFormData {
+    pub door: String,
+    pub dock: String,
+    pub schedule_date: String,
+    pub schedule_time: String,
+    pub trailer: String,
+    pub picker: String,
+    pub verified_by: String,
+    pub load_id: String,
+    pub load_num: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq)]

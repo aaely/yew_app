@@ -8,8 +8,6 @@ use crate::{models::Item, gmap::Gmap, fix_parts::FixParts};
 use csv::{ReaderBuilder, StringRecord};
 use std::collections::HashSet;
 
-
-
 fn plant_code(code: &str) -> String {
     match code {
         "AR" => "ARLINGTON".to_string(),
