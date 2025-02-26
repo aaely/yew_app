@@ -6,6 +6,14 @@ pub struct LoginRequest {
     pub password: String,
 }
 
+#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
+pub struct User {
+    pub username: String,
+    pub role: String,
+    pub token: String,
+    pub refresh_token: Option<String>,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct SetArrivalTimeRequest {
     pub TrailerID: String,
@@ -55,6 +63,98 @@ pub struct Sid {
 pub struct Part {
     pub partNumber: String,
     pub quantity: i32,
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct ShipmentPickFinishRequest {
+    pub LoadId: String,
+    pub FinishTime: String,
+}
+
+#[derive(Serialize)]
+pub struct PickStartRequest {
+    pub StartTime: String,
+    pub LoadId: String,
+    pub Picker: String,
+}
+
+#[derive(Serialize)]
+pub struct TrailerArrivalRequest {
+    pub ArrivalTime: String,
+    pub LoadId: String,
+    pub TrailerNum: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct TrailerArrivalMessage {
+    pub ArrivalTime: String,
+    pub LoadId: String,
+    pub TrailerNum: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct PickFinishMessage {
+    pub LoadId: String,
+    pub FinishTime: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct VerifiedByRequest {
+    pub LoadId: String,
+    pub VerifiedBy: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct VerifiedByMessage {
+    pub LoadId: String,
+    pub VerifiedBy: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct StartLoadingMessage {
+    pub LoadId: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ShipmentLoadingRequest {
+    pub LoadId: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ShipmentLoadingMessage {
+    pub LoadId: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SetShipmentDoorRequest {
+    pub LoadId: String,
+    pub Door: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SetShipmentDoorMessage {
+    pub LoadId: String,
+    pub Door: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ShipmentDepartRequest {
+    pub LoadId: String,
+    pub DepartTime: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SetShipmentDepartMessage {
+    pub LoadId: String,
+    pub DepartTime: String,
+}
+
+
+#[derive(Serialize, Deserialize)]
+pub struct PickStartMessage {
+    pub LoadId: String,
+    pub StartTime: String,
+    pub Picker: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -174,6 +274,7 @@ pub struct Shipment {
     pub PickStartTime: String,
     pub VerifiedBy: String,
     pub TrailerNum: String,
+    pub PickFinishTime: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Default, Clone)]

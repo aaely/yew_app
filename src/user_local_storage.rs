@@ -1,7 +1,7 @@
 use web_sys::window;
 use serde::{Deserialize, Serialize};
 use serde_json::{self, Error};
-use crate::state::User;
+use crate::models::User;
 
 const USER_KEY: &str = "user";
 

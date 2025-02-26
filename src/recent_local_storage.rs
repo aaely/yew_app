@@ -1,7 +1,7 @@
 use web_sys::window;
 use serde::{Deserialize, Serialize};
 use serde_json::{self, Error};
-use crate::{state::User, RecentTrailers};
+use crate::{models::User, RecentTrailers};
 
 const RECENT_KEY: &str = "recent";
 const VIEW_KEY: &str = "view";

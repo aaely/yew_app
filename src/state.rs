@@ -5,14 +5,6 @@ use yew::prelude::*;
 use crate::{models::*, recent_local_storage::*, user_local_storage::*};
 use gloo::console::log;
 
-#[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq)]
-pub struct User {
-    pub username: String,
-    pub role: String,
-    pub token: String,
-    pub refresh_token: Option<String>,
-}
-
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 pub struct IncomingMessage {
     pub r#type: String,
@@ -30,6 +22,7 @@ pub struct AppState {
     pub last_view: String,
     pub recent_trailers:Vec<RecentTrailers>,
     pub shipments: Vec<Shipment>,
+    pub current_shipment: Option<Shipment>,
 }
 
 impl Default for AppState {
@@ -44,6 +37,17 @@ impl Default for AppState {
             trailers: vec![],
             recent_trailers: load_recent_from_local_storage().unwrap_or_default(),
             shipments: vec![],
+            current_shipment: None,
+        }
+    }
+}
+
+impl User {
+    pub fn is_authorized(&self) -> bool {
+        if self.role == "admin".to_string() || self.role == "write".to_string() {
+            true
+        } else {
+            false
         }
     }
 }
@@ -88,25 +92,84 @@ impl AppState {
         }
         Ok(())
     }
-    fn update_shipment(&mut self, msg: &str) -> Result<(), Box<dyn Error>> {
-        let shipment_message: Shipment = serde_json::from_str(msg)?;
+    fn set_shipment_trailer(&mut self, msg: &str) -> Result<(), Box<dyn Error>> {
+        let shipment_message: TrailerArrivalMessage = serde_json::from_str(msg)?;
         for shipment in self.shipments.iter_mut() {
             if shipment.LoadId == shipment_message.LoadId {
-                shipment.ScheduleDate = shipment_message.ScheduleDate;
-                shipment.ScheduleTime = shipment_message.ScheduleTime;
                 shipment.ArrivalTime = shipment_message.ArrivalTime;
-                shipment.DepartTime = shipment_message.DepartTime;
-                shipment.Dock = shipment_message.Dock;
-                shipment.Door = shipment_message.Door;
-                shipment.LoadNum = shipment_message.LoadNum;
-                shipment.Status = shipment_message.Status;
-                shipment.Picker = shipment_message.Picker;
-                shipment.PickStartTime = shipment_message.PickStartTime;
-                shipment.VerifiedBy = shipment_message.VerifiedBy;
                 shipment.TrailerNum = shipment_message.TrailerNum;
                 break;
             }
         }
+        Ok(())
+    }
+    fn set_shipment_door(&mut self, msg: &str) -> Result<(), Box<dyn Error>> {
+        let shipment_message: SetShipmentDoorMessage = serde_json::from_str(msg)?;
+        for shipment in self.shipments.iter_mut() {
+            if shipment.LoadId == shipment_message.LoadId {
+                shipment.Door = shipment_message.Door;
+                break;
+            }
+        }
+        Ok(())
+    }
+    fn shipment_depart(&mut self, msg: &str) -> Result<(), Box<dyn Error>> {
+        let shipment_message: SetShipmentDepartMessage = serde_json::from_str(msg)?;
+        for shipment in self.shipments.iter_mut() {
+            if shipment.LoadId == shipment_message.LoadId {
+                shipment.DepartTime = shipment_message.DepartTime;
+                shipment.Status = "COMPLETE".to_string();
+                break;
+            }
+        }
+        Ok(())
+    }
+    fn shipment_pick_start(&mut self, msg: &str) -> Result<(), Box<dyn Error>> {
+        let shipment_message: PickStartMessage = serde_json::from_str(msg)?;
+        for shipment in self.shipments.iter_mut() {
+            if shipment.LoadId == shipment_message.LoadId {
+                shipment.PickStartTime = shipment_message.StartTime;
+                shipment.Status = "PICKING".to_string();
+                break;
+            }
+        }
+        Ok(())
+    }
+    fn shipment_pick_finish(&mut self, msg: &str) -> Result<(), Box<dyn Error>> {
+        let shipment_message: PickFinishMessage = serde_json::from_str(msg)?;
+        for shipment in self.shipments.iter_mut() {
+            if shipment.LoadId == shipment_message.LoadId {
+                shipment.PickFinishTime = shipment_message.FinishTime;
+                shipment.Status = "VERIFICATION".to_string();
+                break;
+            }
+        }
+        Ok(())
+    }
+    fn shipment_start_loading(&mut self, msg: &str) -> Result<(), Box<dyn Error>> {
+        let shipment_message: StartLoadingMessage = serde_json::from_str(msg)?;
+        for shipment in self.shipments.iter_mut() {
+            if shipment.LoadId == shipment_message.LoadId {
+                shipment.Status = "LOADING".to_string();
+                break;
+            }
+        }
+        Ok(())
+    }
+    fn verified_by(&mut self, msg: &str) -> Result<(), Box<dyn Error>> {
+        let shipment_message: VerifiedByMessage = serde_json::from_str(msg)?;
+        for shipment in self.shipments.iter_mut() {
+            if shipment.LoadId == shipment_message.LoadId {
+                shipment.VerifiedBy = shipment_message.VerifiedBy;
+                shipment.Status = "READY TO LOAD".to_string();
+                break;
+            }
+        }
+        Ok(())
+    }
+    fn new_shipment(&mut self, msg: &str) -> Result<(), Box<dyn Error>> {
+        let shipment_message: Shipment = serde_json::from_str(msg)?;
+        self.shipments.insert(0, shipment_message);
         Ok(())
     }
     fn recent(&mut self, trailer: RecentTrailers) -> Result<(), Box<dyn Error>> {
@@ -146,8 +209,16 @@ pub enum AppStateAction {
     SetLastView(String),
     AddToRecentlyScheduled(RecentTrailers),
     ClearRecentlyScheduled,
-    HandleUpdateShipment(serde_json::Value),
+    HandleNewShipment(serde_json::Value),
+    HandlePickFinish(serde_json::Value),
+    HandleShipmentDoor(serde_json::Value),
+    HandleShipmentTrailer(serde_json::Value),
+    HandleShipmentDepart(serde_json::Value),
+    HandlePickStart(serde_json::Value),
+    HandleVerifiedBy(serde_json::Value),
+    HandleShipmentLoading(serde_json::Value),
     SetShipments(Vec<Shipment>),
+    SetCurrentShipment(Shipment),
 }
 
 impl Reducible for AppState {
@@ -159,6 +230,7 @@ impl Reducible for AppState {
                 save_user_to_local_storage(&user).expect("Failed to save user to local storage");
                 Rc::new(Self { user: Some(user), ..(*self).clone() })
             },
+            AppStateAction::SetCurrentShipment(shipment) => Rc::new(Self { current_shipment: Some(shipment), ..(*self).clone() }),
             AppStateAction::ClearUser => Rc::new(Self { user: None, ..(*self).clone() }),
             AppStateAction::SetCurrentTrailer(trailer) => Rc::new(Self { current_trailer: Some(trailer), ..(*self).clone() }),
             AppStateAction::ClearCurrentTrailer => Rc::new(Self { current_trailer: None, ..(*self).clone() }),
@@ -167,11 +239,67 @@ impl Reducible for AppState {
                 let _ = save_view_to_session_storage(&view);
                 Rc::new(Self { current_view: view, ..(*self).clone() })
             },
-            AppStateAction::HandleUpdateShipment(data) => {
-                log!(format!("Handling updated shipment: {:?}", data));
+            AppStateAction::HandleShipmentDoor(data) => {
+                log!(format!("Handling shipment door: {:?}", data));
                 let mut new_state = (*self).clone();
                 if let Some(message) = data.get("message").and_then(|v| v.as_str()) {
-                    let _ = new_state.update_shipment(message);
+                    let _ = new_state.set_shipment_door(message);
+                }
+                Rc::new(new_state)
+            },
+            AppStateAction::HandleNewShipment(data) => {
+                log!(format!("Handling new shipment: {:?}", data));
+                let mut new_state = (*self).clone();
+                if let Some(message) = data.get("message").and_then(|v| v.as_str()) {
+                    let _ = new_state.new_shipment(message);
+                }
+                Rc::new(new_state)
+            },
+            AppStateAction::HandleShipmentLoading(data) => {
+                log!(format!("Handling loading: {:?}", data));
+                let mut new_state = (*self).clone();
+                if let Some(message) = data.get("message").and_then(|v| v.as_str()) {
+                    let _ = new_state.shipment_start_loading(message);
+                }
+                Rc::new(new_state)
+            },
+            AppStateAction::HandlePickFinish(data) => {
+                log!(format!("Handling pick finish: {:?}", data));
+                let mut new_state = (*self).clone();
+                if let Some(message) = data.get("message").and_then(|v| v.as_str()) {
+                    let _ = new_state.shipment_pick_finish(message);
+                }
+                Rc::new(new_state)
+            },
+            AppStateAction::HandleVerifiedBy(data) => {
+                log!(format!("Handling verified by: {:?}", data));
+                let mut new_state = (*self).clone();
+                if let Some(message) = data.get("message").and_then(|v| v.as_str()) {
+                    let _ = new_state.verified_by(message);
+                }
+                Rc::new(new_state)
+            },
+            AppStateAction::HandlePickStart(data) => {
+                log!(format!("Handling pick start: {:?}", data));
+                let mut new_state = (*self).clone();
+                if let Some(message) = data.get("message").and_then(|v| v.as_str()) {
+                    let _ = new_state.shipment_pick_start(message);
+                }
+                Rc::new(new_state)
+            },
+            AppStateAction::HandleShipmentDepart(data) => {
+                log!(format!("Handling complete shipment: {:?}", data));
+                let mut new_state = (*self).clone();
+                if let Some(message) = data.get("message").and_then(|v| v.as_str()) {
+                    let _ = new_state.shipment_depart(message);
+                }
+                Rc::new(new_state)
+            },
+            AppStateAction::HandleShipmentTrailer(data) => {
+                log!(format!("Handling shipment trailer: {:?}", data));
+                let mut new_state = (*self).clone();
+                if let Some(message) = data.get("message").and_then(|v| v.as_str()) {
+                    let _ = new_state.set_shipment_trailer(message);
                 }
                 Rc::new(new_state)
             },

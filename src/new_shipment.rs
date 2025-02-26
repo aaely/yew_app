@@ -4,7 +4,7 @@ use yew::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 use reqwest::Client;
 use gloo::console::log;
-use crate::{models::*, state::AppStateContext, AppStateAction};
+use crate::{models::*, state::AppStateContext, AppStateAction, float_button::FloatingIcon};
 use chrono::prelude::*;
 
 // Formats a NaiveDate to a string like "MMDDYYYY"
@@ -128,44 +128,51 @@ pub fn new_shipment() -> Html {
             let app_state = app_state.clone();
             let form = form.clone();
             spawn_local(async move {
-                let request = Shipment {
-                    ScheduleDate: form.schedule_date,
-                    ScheduleTime: form.schedule_time,
-                    ArrivalTime: "".to_string(),
-                    DepartTime: "".to_string(),
-                    Dock: form.dock,
-                    Door: form.door,
-                    LoadId: form.load_id,
-                    LoadNum: form.load_num,
-                    Status: "".to_string(),
-                    Picker: "".to_string(),
-                    PickStartTime: "".to_string(),
-                    VerifiedBy: "".to_string(),
-                    TrailerNum: form.trailer,
-                };             
-                let client: Client = Client::new();
-                match client
-                    .post("https://10.192.208.6:8443/api/create_shipment")
-                    .json(&request)
-                    .send()
-                    .await 
-                {
-                    Ok(response) => {
-                        match response.json::<Shipment>().await {
-                            Ok(shipment) => {
-                                let json_string = serde_json::to_string(&shipment).unwrap();
-                                let message = json!({
-                                    "type": "new_shipment",
-                                    "data": json_string
-                                }).to_string();
-                                app_state.send_ws_message(&message);
-                                app_state.dispatch(AppStateAction::SetCurrentView("shipments".to_string()));
-                            },
-                            Err(error) => log!(format!("{:?}", error)),
+                if let Some(user) = &app_state.user {
+                    let request = Shipment {
+                        ScheduleDate: form.schedule_date,
+                        ScheduleTime: form.schedule_time,
+                        ArrivalTime: "".to_string(),
+                        DepartTime: "".to_string(),
+                        Dock: form.dock,
+                        Door: form.door,
+                        LoadId: form.load_id,
+                        LoadNum: form.load_num,
+                        Status: "".to_string(),
+                        Picker: "".to_string(),
+                        PickStartTime: "".to_string(),
+                        PickFinishTime: "".to_string(),
+                        VerifiedBy: "".to_string(),
+                        TrailerNum: "".to_string(),
+                    };             
+                    let client: Client = Client::new();
+                    match client
+                        .post("http://localhost:8000/api/new_shipment")
+                        .header("Authorization", format!("Bearer {}", user.token))
+                        .json(&request)
+                        .send()
+                        .await 
+                    {
+                        Ok(response) => {
+                            match response.json::<Shipment>().await {
+                                Ok(shipment) => {
+                                    let json_string = serde_json::to_string(&shipment).unwrap();
+                                    let message = json!({
+                                        "type": "new_shipment",
+                                        "data": {
+                                            "message": json_string
+                                        }
+                                    }).to_string();
+                                    log!(format!("{:?}", message.clone()));
+                                    app_state.send_ws_message(&message);
+                                    app_state.dispatch(AppStateAction::SetCurrentView("shipments".to_string()));
+                                },
+                                Err(error) => log!(format!("{:?}", error)),
+                            }
+                        },
+                        Err(e) => {
+                            log!(format!("Error sending shipment request: {:?}", e));
                         }
-                    },
-                    Err(e) => {
-                        log!(format!("Error sending shipment request: {:?}", e));
                     }
                 }
             });
@@ -178,7 +185,7 @@ pub fn new_shipment() -> Html {
             <form>
                 <div>
                     <label for="load_id">{ "Load Id" }</label>
-                    <input type="date" id="load_id" value={form.load_id.clone()} oninput={on_change.clone()} />
+                    <input type="text" id="load_id" value={form.load_id.clone()} oninput={on_change.clone()} />
                 </div>
                 <div>
                     <label for="schedule_date">{ "Schedule Date" }</label>
@@ -186,7 +193,7 @@ pub fn new_shipment() -> Html {
                 </div>
                 <div>
                     <label for="schedule_time">{ "Schedule Time" }</label>
-                    <input type="time" id="schedule_time" value={form.schedule_time.clone()} oninput={on_change.clone()} />
+                    <input type="text" id="schedule_time" value={form.schedule_time.clone()} oninput={on_change.clone()} />
                 </div>
                 <div>
                     <label for="dock">{ "Dock" }</label>
@@ -197,15 +204,12 @@ pub fn new_shipment() -> Html {
                     <input type="text" id="door" value={form.door.clone()} oninput={on_change.clone()} />
                 </div>
                 <div>
-                    <label for="trailer">{ "Trailer" }</label>
-                    <input type="text" id="trailer" value={form.trailer.clone()} oninput={on_change.clone()} />
-                </div>
-                <div>
                     <label for="load_num">{ "Load Number (optional)" }</label>
                     <input type="text" id="load_num" value={form.load_num.clone()} oninput={on_change.clone()} />
                 </div>
                 <button type="button" onclick={create_shipment}>{ "Create Shipment" }</button>
             </form>
+            <FloatingIcon />
         </div>
     }
 }

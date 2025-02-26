@@ -8,6 +8,11 @@ mod recent_local_storage;
 mod upload;
 mod gmap;
 mod new_shipment;
+mod verified_by;
+mod float_button;
+mod set_door;
+mod set_picker;
+mod trailer_arrive;
 mod shipments;
 //mod server;
 mod load_details;
@@ -19,10 +24,10 @@ mod edit_trailer;
 use std::rc::Rc;
 use models::*;
 use wasm_bindgen_futures::spawn_local;
-use yew::{prelude::*, virtual_dom::Key};
+use yew::prelude::*;
 use reqwest::Client;
 use gloo::console::log;
-use web_sys::{js_sys::{self, Object}, wasm_bindgen::{self, closure::Closure, prelude::wasm_bindgen, JsCast, JsValue}, window, HtmlInputElement, KeyboardEvent, MessageEvent, Navigator, WebSocket};
+use web_sys::{js_sys::{self}, wasm_bindgen::{self, closure::Closure, prelude::wasm_bindgen, JsCast}, HtmlInputElement, KeyboardEvent, MessageEvent, WebSocket};
 use trucks::Trucks;
 use state::*;
 use load_details::*;
@@ -32,6 +37,12 @@ use edit_trailer::EditTrailer;
 use trailers_date_range::TrailersDateRange;
 use recent::Recent;
 use upload::Upload;
+use set_picker::SetPicker;
+use trailer_arrive::SetTrailer;
+use set_door::SetDoor;
+use shipments::Shipments;
+use new_shipment::NewShipment;
+use verified_by::VerifiedBy;
 
 #[wasm_bindgen]
 extern "C" {
@@ -68,6 +79,36 @@ fn app() -> Html {
                         "trailer_arrived" => {
                             app_state_rc.dispatch(AppStateAction::HandleTrailerArrived(incoming_message.data));
                         }
+                        "set_shipment_trailer" => {
+                            app_state_rc.dispatch(AppStateAction::HandleShipmentTrailer(incoming_message.data));
+                        }
+                        "set_shipment_door" => {
+                            app_state_rc.dispatch(AppStateAction::HandleShipmentDoor(incoming_message.data));
+                        }
+                        "start_shipment_pick" => {
+                            app_state_rc.dispatch(AppStateAction::HandlePickStart(incoming_message.data));
+                        }
+                        "finish_shipment_pick" => {
+                            app_state_rc.dispatch(AppStateAction::HandlePickFinish(incoming_message.data));
+                        }
+                        "shipment_loading" => {
+                            app_state_rc.dispatch(AppStateAction::HandleShipmentTrailer(incoming_message.data));
+                        }
+                        "shipment_trailer_arrival" => {
+                            app_state_rc.dispatch(AppStateAction::HandleShipmentTrailer(incoming_message.data));
+                        }
+                        "new_shipment" => {
+                            app_state_rc.dispatch(AppStateAction::HandleNewShipment(incoming_message.data));
+                        }
+                        "shipment_depart" => {
+                            app_state_rc.dispatch(AppStateAction::HandleShipmentDepart(incoming_message.data));
+                        }
+                        "shipment_start_loading" => {
+                            app_state_rc.dispatch(AppStateAction::HandleShipmentLoading(incoming_message.data));
+                        }
+                        "verified_by" => {
+                            app_state_rc.dispatch(AppStateAction::HandleVerifiedBy(incoming_message.data));
+                        }
                         _ => {
                             log!(format!("Unknown event type: {:?}", incoming_message.r#type));
                         }
@@ -82,10 +123,12 @@ fn app() -> Html {
             }) as Box<dyn FnMut(ErrorEvent)>);
             ws.set_onerror(Some(onerror_callback.as_ref().unchecked_ref()));
             onerror_callback.forget();
-
+            let app_st_clone = app_st.clone();
             app_st.dispatch(AppStateAction::ConnectWebSocket(ws));
 
-            || ()
+            move || {
+                app_st_clone.dispatch(AppStateAction::DisconnectWebSocket);
+            }
         });
     }
 
@@ -108,8 +151,14 @@ fn app() -> Html {
                         "todays_schedule" => html! { <TodaysSchedule /> },
                         "edit_trailer" => html! { <EditTrailer /> },
                         "trailers_date_range" => html! { <TrailersDateRange /> },
-                        "recent" => html! { <Recent />},
+                        "recent" => html! { <Recent /> },
                         "upload" => html! { <Upload /> },
+                        "shipments" => html! { <Shipments /> },
+                        "set_picker" => html! { <SetPicker /> },
+                        "set_trailer" => html! { <SetTrailer /> },
+                        "new_shipment" => html! { <NewShipment /> },
+                        "set_door" => html! { <SetDoor /> },
+                        "verified_by" => html! { <VerifiedBy /> },
                         _ => html! { <p>{ "Page not found" }</p> },
                     }
                 }
