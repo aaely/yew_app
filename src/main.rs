@@ -9,13 +9,16 @@ mod upload;
 mod gmap;
 mod new_shipment;
 mod verified_by;
+mod shipment_details;
 mod float_button;
+mod todays_shipments;
 mod set_door;
 mod set_picker;
 mod trailer_arrive;
 mod shipments;
 //mod server;
 mod load_details;
+mod depart;
 mod fix_parts;
 mod recent;
 mod nav;
@@ -43,6 +46,9 @@ use set_door::SetDoor;
 use shipments::Shipments;
 use new_shipment::NewShipment;
 use verified_by::VerifiedBy;
+use todays_shipments::TodaysShipments;
+use depart::Depart;
+use shipment_details::ShipmentDetails;
 
 #[wasm_bindgen]
 extern "C" {
@@ -99,6 +105,9 @@ fn app() -> Html {
                         }
                         "new_shipment" => {
                             app_state_rc.dispatch(AppStateAction::HandleNewShipment(incoming_message.data));
+                        }
+                        "shipment_hold" => {
+                            app_state_rc.dispatch(AppStateAction::HandleShipmentHold(incoming_message.data));
                         }
                         "shipment_depart" => {
                             app_state_rc.dispatch(AppStateAction::HandleShipmentDepart(incoming_message.data));
@@ -159,6 +168,9 @@ fn app() -> Html {
                         "new_shipment" => html! { <NewShipment /> },
                         "set_door" => html! { <SetDoor /> },
                         "verified_by" => html! { <VerifiedBy /> },
+                        "todays_shipments" => html! { <TodaysShipments /> },
+                        "depart" => html! { <Depart /> },
+                        "shipment_details" => html! { <ShipmentDetails /> },
                         _ => html! { <p>{ "Page not found" }</p> },
                     }
                 }

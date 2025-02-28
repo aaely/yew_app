@@ -18,7 +18,7 @@ pub fn verified_by() -> Html {
     let app_state = use_context::<AppStateContext>().expect("no state found");
     let shipment = app_state.current_shipment.as_ref().unwrap().clone();
     let verifier = use_state(|| shipment.VerifiedBy.clone());
-
+    
     let set_pick_start = {
         let app_state = app_state.clone();
         let verifier = verifier.clone();
@@ -82,6 +82,7 @@ pub fn verified_by() -> Html {
 
     html! {
         <div style="text-align: center;">
+            <h1>{"Load: "} {shipment.LoadId}</h1>
             <label for="verifier">{ "Verified By" }</label>
             <input style="text-align: center; width: 25vw;" id="picker" type="text" value={(*verifier).clone()} oninput={on_change.clone()} />
             <button style="background-color: green; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={set_pick_start}>{"Set Details"}</button>

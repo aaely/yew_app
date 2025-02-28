@@ -128,6 +128,7 @@ impl AppState {
         let shipment_message: PickStartMessage = serde_json::from_str(msg)?;
         for shipment in self.shipments.iter_mut() {
             if shipment.LoadId == shipment_message.LoadId {
+                shipment.Picker = shipment_message.Picker;
                 shipment.PickStartTime = shipment_message.StartTime;
                 shipment.Status = "PICKING".to_string();
                 break;
@@ -151,6 +152,16 @@ impl AppState {
         for shipment in self.shipments.iter_mut() {
             if shipment.LoadId == shipment_message.LoadId {
                 shipment.Status = "LOADING".to_string();
+                break;
+            }
+        }
+        Ok(())
+    }
+    fn shipment_hold(&mut self, msg: &str) -> Result<(), Box<dyn Error>> {
+        let shipment_message: StartLoadingMessage = serde_json::from_str(msg)?;
+        for shipment in self.shipments.iter_mut() {
+            if shipment.LoadId == shipment_message.LoadId {
+                shipment.IsHold = !shipment.IsHold;
                 break;
             }
         }
@@ -215,6 +226,7 @@ pub enum AppStateAction {
     HandleShipmentTrailer(serde_json::Value),
     HandleShipmentDepart(serde_json::Value),
     HandlePickStart(serde_json::Value),
+    HandleShipmentHold(serde_json::Value),
     HandleVerifiedBy(serde_json::Value),
     HandleShipmentLoading(serde_json::Value),
     SetShipments(Vec<Shipment>),
@@ -244,6 +256,14 @@ impl Reducible for AppState {
                 let mut new_state = (*self).clone();
                 if let Some(message) = data.get("message").and_then(|v| v.as_str()) {
                     let _ = new_state.set_shipment_door(message);
+                }
+                Rc::new(new_state)
+            },
+            AppStateAction::HandleShipmentHold(data) => {
+                log!(format!("Handling shipment hold: {:?}", data));
+                let mut new_state = (*self).clone();
+                if let Some(message) = data.get("message").and_then(|v| v.as_str()) {
+                    let _ = new_state.shipment_hold(message);
                 }
                 Rc::new(new_state)
             },

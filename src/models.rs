@@ -141,6 +141,7 @@ pub struct SetShipmentDoorMessage {
 pub struct ShipmentDepartRequest {
     pub LoadId: String,
     pub DepartTime: String,
+    pub Seal: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -275,6 +276,8 @@ pub struct Shipment {
     pub VerifiedBy: String,
     pub TrailerNum: String,
     pub PickFinishTime: String,
+    pub IsHold: bool,
+    pub Seal: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Default, Clone)]
@@ -289,6 +292,19 @@ pub struct ItemCompare {
     pub in_transit: i32,
     pub plant: String,
     pub plant_doh: String,
+}
+
+#[derive(Debug, Deserialize, Clone, Serialize)]
+pub struct ShipmentLine {
+    pub item: String,
+    pub quantity: u32,
+    pub ip: String,
+}
+
+#[derive(Serialize)]
+pub struct ShipmentLineUploadRequest {
+    pub LoadId: String,
+    pub Lines: Vec<ShipmentLine>,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Default, Clone)]

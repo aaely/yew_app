@@ -1,10 +1,10 @@
 use serde_json::json;
-use web_sys::HtmlInputElement;
+use web_sys::{HtmlInputElement};
 use yew::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 use reqwest::Client;
 use gloo::console::log;
-use crate::{models::*, state::AppStateContext, AppStateAction};
+use crate::{models::*, state::{AppState, AppStateContext}, AppStateAction};
 use chrono::prelude::*;
 
 fn time() -> String {
@@ -12,31 +12,30 @@ fn time() -> String {
     format!("{:02}:{:02}:{:02}", now.hour(), now.minute(), now.second())
 }
 
-#[function_component(SetTrailer)]
-pub fn set_trailer() -> Html {
+#[function_component(Depart)]
+pub fn set_picker() -> Html {
 
     let app_state = use_context::<AppStateContext>().expect("no state found");
     let shipment = app_state.current_shipment.as_ref().unwrap().clone();
-    let trailer = use_state(|| shipment.TrailerNum.clone());
-    let sh = app_state.current_shipment.clone();
-
-    let set_trailer = {
+    let seal = use_state(|| shipment.Seal.clone());
+    
+    let depart = {
         let app_state = app_state.clone();
-        let trailer = trailer.clone();
         let shipment = shipment.clone();
+        let seal = (*seal).clone();
         Callback::from(move |_| {
             let app_state = app_state.clone();
-            let trailer = trailer.clone();
             let shipment = shipment.clone();
+            let seal = seal.clone();
             spawn_local(async move {
                 let client = Client::new();
                 if let Some(user) = &app_state.user {
-                    let request = TrailerArrivalRequest {
-                        ArrivalTime: time(),
-                        LoadId: shipment.LoadId,
-                        TrailerNum: (*trailer).clone()
+                    let request =  ShipmentDepartRequest {
+                        LoadId: shipment.LoadId.clone(),
+                        DepartTime: time(),
+                        Seal: seal,
                     };
-                    match client.post("http://172.16.1.172:8000/api/set_shipment_trailer")
+                    match client.post("http://localhost:8000/api/set_shipment_departureTime")
                         .header("Authorization", format!("Bearer {}", user.token))
                         .json(&request)
                         .send()
@@ -44,14 +43,14 @@ pub fn set_trailer() -> Html {
                             Ok(resp) => {
                                 match resp.json::<Shipment>().await {
                                     Ok(shipment) => {
-                                        let msg = TrailerArrivalMessage {
+                                        let msg = ShipmentDepartRequest {
                                             LoadId: shipment.LoadId,
-                                            ArrivalTime: shipment.ArrivalTime,
-                                            TrailerNum: shipment.TrailerNum,
+                                            DepartTime: shipment.DepartTime,
+                                            Seal: shipment.Seal,
                                         };
                                         let json_string = serde_json::to_string(&msg).unwrap();
                                         let message = json!({
-                                            "type": "shipment_trailer_arrival",
+                                            "type": "shipment_depart",
                                             "data": {
                                                 "message": json_string
                                             }
@@ -62,7 +61,7 @@ pub fn set_trailer() -> Html {
                                     Err(e) => {
                                         app_state.dispatch(AppStateAction::ClearUser);
                                         log!(format!("{:?}", e));
-                                    }
+                                    },
                                 }
                             },
                             Err(e) => log!(format!("{:?}", e)),
@@ -73,29 +72,23 @@ pub fn set_trailer() -> Html {
     };
 
     let on_change = {
-        let trailer = trailer.clone();
+        let seal = seal.clone();
         Callback::from(move |e: InputEvent| {
             let input = e.target_unchecked_into::<HtmlInputElement>();
             let id = input.id();
             let value = input.value();
 
-            trailer.set(value);
+            seal.set(value);
         })
     };
 
-    if let Some(_) = sh {
-        html! {
+    html! {
         <div style="text-align: center;">
             <h1>{"Load: "} {shipment.LoadId}</h1>
-            <label for="trailer">{ "Trailer" }</label>
-            <input style="text-align: center; width: 25vw;" id="trailer" type="text" value={(*trailer).clone()} oninput={on_change.clone()} />
-            <button style="background-color: green; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={set_trailer}>{"Set Details"}</button>
+            <label for="seal">{ "Seal" }</label>
+            <input style="text-align: center; width: 25vw;" id="seal" type="text" value={(*seal).clone()} oninput={on_change.clone()} />
+            <button style="background-color: green; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={depart}>{"Set Details"}</button>
         </div> 
-        }
-    } else {
-        html! {<div>{"No shipment selected"}</div>}
     }
-
-    
 }
 

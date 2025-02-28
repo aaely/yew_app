@@ -18,21 +18,27 @@ pub fn set_picker() -> Html {
     let app_state = use_context::<AppStateContext>().expect("no state found");
     let shipment = app_state.current_shipment.as_ref().unwrap().clone();
     let picker = use_state(|| shipment.Picker.clone());
-
+    
     let set_pick_start = {
         let app_state = app_state.clone();
         let picker = picker.clone();
-        let shipment = shipment.clone();
+        let ship = shipment.clone();
         Callback::from(move |_| {
             let app_state = app_state.clone();
             let picker = picker.clone();
-            let shipment = shipment.clone();
+            let ship = ship.clone();
             spawn_local(async move {
                 let client = Client::new();
                 if let Some(user) = &app_state.user {
+                    let mut t = String::new();
+                    if ship.PickStartTime.len() > 0 {
+                        t = ship.PickStartTime;
+                    } else {
+                        t = time();
+                    }
                     let request = PickStartRequest {
-                        StartTime: time(),
-                        LoadId: shipment.LoadId,
+                        StartTime: t,
+                        LoadId: ship.LoadId,
                         Picker: (*picker).clone()
                     };
                     match client.post("http://localhost:8000/api/set_shipment_pick_start")
@@ -85,6 +91,7 @@ pub fn set_picker() -> Html {
 
     html! {
         <div style="text-align: center;">
+            <h1>{"Load: "} {shipment.LoadId}</h1>
             <label for="picker">{ "Picker" }</label>
             <input style="text-align: center; width: 25vw;" id="picker" type="text" value={(*picker).clone()} oninput={on_change.clone()} />
             <button style="background-color: green; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={set_pick_start}>{"Set Details"}</button>

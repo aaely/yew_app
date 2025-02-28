@@ -8,11 +8,13 @@
     <!-- Import Materialize CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
 
-<link rel="modulepreload" href="/yew-app-a509cec97a755240.js" crossorigin=anonymous integrity="sha384-iIVsrfXRy7p2AffsuhmOJk9RZ3sRABYOhGXUGf7wd9AVXuUhNbp3h1bmSESAb0yx">
-<link rel="preload" href="/yew-app-a509cec97a755240_bg.wasm" crossorigin=anonymous integrity="sha384-Ha/r34N/XVzJpsdJGf4WB8hO6L/sUqsn+2hBBUlh7+bc5yAf/hv08Z890noMhoqy" as="fetch" type="application/wasm"></head>
+<link rel="modulepreload" href="/yew-app-df16970c2aa8b3e9.js" crossorigin=anonymous integrity="sha384-lI91mDJkZhj5DFI4x9qS9ZkMOxt/tIB6TSEyp3EBggCxqZNgwxphJh0J8kmcmElM">
+<link rel="preload" href="/yew-app-df16970c2aa8b3e9_bg.wasm" crossorigin=anonymous integrity="sha384-RW8r7RBsNawt6i0tjHnQJqwmygDBzx7n/+cZZv7YSmONer9GfHYp2wV1eYK9FzPD" as="fetch" type="application/wasm"></head>
 <body>
     <div id="root"></div>
+    <!--Frirst function is exposed to the web assembly window object to allow for downloading of csv files -->
     <script>
+        
         function downloadCSV(filename, text) {
             var element = document.createElement('a');
             element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(text));
@@ -38,9 +40,9 @@
         }
     </script>
 
-<script type="module" nonce="K1AbCjKDW/esYknq0gwJ/g==">
-import init, * as bindings from '/yew-app-a509cec97a755240.js';
-const wasm = await init('/yew-app-a509cec97a755240_bg.wasm');
+<script type="module" nonce="ibc04ObraPqJNS6m5ObrDw==">
+import init, * as bindings from '/yew-app-df16970c2aa8b3e9.js';
+const wasm = await init('/yew-app-df16970c2aa8b3e9_bg.wasm');
 
 
 window.wasmBindings = bindings;

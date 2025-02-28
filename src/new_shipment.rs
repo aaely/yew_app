@@ -1,5 +1,5 @@
 use serde_json::json;
-use web_sys::{HtmlInputElement, KeyboardEvent};
+use web_sys::HtmlInputElement;
 use yew::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 use reqwest::Client;
@@ -144,6 +144,8 @@ pub fn new_shipment() -> Html {
                         PickFinishTime: "".to_string(),
                         VerifiedBy: "".to_string(),
                         TrailerNum: "".to_string(),
+                        IsHold: false,
+                        Seal: "".to_string(),
                     };             
                     let client: Client = Client::new();
                     match client

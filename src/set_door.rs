@@ -7,18 +7,13 @@ use gloo::console::log;
 use crate::{models::*, state::AppStateContext, AppStateAction};
 use chrono::prelude::*;
 
-fn time() -> String {
-    let now = Local::now();
-    format!("{:02}:{:02}:{:02}", now.hour(), now.minute(), now.second())
-}
-
 #[function_component(SetDoor)]
 pub fn set_door() -> Html {
 
     let app_state = use_context::<AppStateContext>().expect("no state found");
     let shipment = app_state.current_shipment.as_ref().unwrap().clone();
     let door = use_state(|| shipment.TrailerNum.clone());
-    log!(format!("{:?}", shipment.clone()));
+    
     let set_door = {
         let app_state = app_state.clone();
         let door = door.clone();
@@ -82,6 +77,7 @@ pub fn set_door() -> Html {
 
     html! {
         <div style="text-align: center;">
+            <h1>{"Load: "} {shipment.LoadId}</h1>
             <label for="door">{ "Door" }</label>
             <input style="text-align: center; width: 25vw;" id="door" type="text" value={(*door).clone()} oninput={on_change.clone()} />
             <button style="background-color: green; color: white; padding: 14px 20px; border: none; cursor: pointer; border-radius: 4px;" onclick={set_door}>{"Set Details"}</button>

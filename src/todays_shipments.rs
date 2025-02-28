@@ -24,22 +24,43 @@ fn get_background(status: &str) -> String {
     }
 }
 
-fn parse_date(date_str: &str) -> (u32, u32, u32) {
-    let date_str = if date_str.is_empty() { "1000-01-01" } else { date_str };
-    let parts: Vec<&str> = date_str.split('-').collect();
-    let mut year = 0;
-    let mut month = 0;
-    let mut day = 0;
-    if let Some(year_str) = parts.get(0) {
-        year = year_str.parse::<u32>().unwrap_or(0);
+fn format_current_date() -> String {
+    let local: DateTime<Local> = Local::now();
+    let year = local.year();
+    let month = format!("{:02}", local.month());
+    let day = format!("{:02}", local.day());
+    format!("{}-{}-{}", year, month, day)
+}
+
+fn total_expected(shipments: &Vec<Shipment>) -> (u32, u32, u32, u32, u32, u32, u32) {
+    let (mut ns, mut p, mut rtl, mut ld, mut cmp, mut hld, mut vl) = (0,0,0,0,0,0,0);
+    for shipment in shipments {
+        match (shipment.Status.as_str(), shipment.IsHold) {
+            ("NOT STARTED", false) => ns += 1,
+            ("READY TO LOAD", false) => rtl += 1,
+            ("LOADING", false) => ld += 1,
+            ("COMPLETE", false) => cmp += 1,
+            ("VERIFICATION", false) => vl += 1,
+            ("PICKING",  false) => p += 1,
+            _ => hld += 1,
+        }
     }
-    if let Some(month_str) = parts.get(1) {
-        month = month_str.parse::<u32>().unwrap_or(0);
+    (ns, p, rtl, ld, cmp, vl, hld)
+}
+
+fn total_by_plant(shipments: &Vec<Shipment>) -> (u32, u32) {
+    let (mut ar, mut sh) = (0, 0);
+    for shipment in shipments {
+        match shipment.Dock.to_lowercase().as_str() {
+            "73y" => sh += 1,
+            "74y" => sh += 1,
+            "75y" => sh += 1,
+            "uuu" => ar += 1,
+            "vaa" => ar += 1,
+            _ => todo!(),
+        }
     }
-    if let Some(day_str) = parts.get(2) {
-        day = day_str.parse::<u32>().unwrap_or(0);
-    }
-    (year, month, day)
+    (ar, sh)
 }
 
 fn parse_time(time_str: &str) -> (u32, u32) {
@@ -65,11 +86,11 @@ fn parse_time(time_str: &str) -> (u32, u32) {
     (hours, minutes)
 }
 
-#[function_component(Shipments)]
+
+#[function_component(TodaysShipments)]
 pub fn shipments() -> Html {
 
     let app_state = use_context::<AppStateContext>().expect("no state found");
-
     {
         let app_state = app_state.clone();
         use_effect_with((), move |_| {
@@ -77,8 +98,12 @@ pub fn shipments() -> Html {
 
             spawn_local(async move {
                 let client = Client::new();
+                let request = TodaysTrucksRequest {
+                    date: format_current_date(),
+                };
                 if let Some(user) = &app_state.user {
-                    match client.get("http://localhost:8000/api/get_shipments")
+                    match client.post("http://localhost:8000/api/get_todays_shipments")
+                        .json(&request)
                         .header("Authorization", format!("Bearer {}", user.token))
                         .send()
                         .await {
@@ -86,27 +111,17 @@ pub fn shipments() -> Html {
                                 match resp.json::<Vec<Shipment>>().await {
                                     Ok(shipments) => {
                                         let mut sh = shipments.clone();
-                                        sh.sort_by(|a, b|{
+                                        sh.sort_by(|a, b| {
                                             let (hours_a, minutes_a) = parse_time(&a.ScheduleTime);
                                             let (hours_b, minutes_b) = parse_time(&b.ScheduleTime);
-                                            let (year_a, month_a, day_a) = parse_date(&a.ScheduleDate);
-                                            let (year_b, month_b, day_b) = parse_date(&b.ScheduleDate);
-                                            if year_a == year_b && month_a == month_b && day_a == day_b {
-                                                if hours_a == hours_b && minutes_a == minutes_b {
-                                                    a.Dock.cmp(&b.Dock)
-                                                } else if hours_a == hours_b {
-                                                    minutes_a.cmp(&minutes_b)
-                                                } else {
-                                                    hours_a.cmp(&hours_b)
-                                                }
-                                            } else if year_a == year_b && month_a == month_b && day_a != day_b {
-                                                day_b.cmp(&day_a)
-                                            } else if year_a == year_b && month_a != month_b {
-                                                month_b.cmp(&month_a)
+                                            if hours_a == hours_b && minutes_a == minutes_b {
+                                                a.Dock.cmp(&b.Dock)
+                                            } else if hours_a == hours_b && minutes_a != minutes_b {
+                                                minutes_a.cmp(&minutes_b)
                                             } else {
-                                                year_b.cmp(&year_a)
+                                                hours_a.cmp(&hours_b)
                                             }
-                                        }); 
+                                        });
                                         app_state.dispatch(AppStateAction::SetShipments(sh));
                                     },
                                     Err(error) => {
@@ -191,8 +206,22 @@ pub fn shipments() -> Html {
 
     html! {
         <div style="margin-top: 7vh; width: 90vw;">
-            <h1 style="text-align: center;">{ "Most Recent Shipments" }</h1>
-            <div style="text-align: center; color: blue; text-decoration: underline;" onclick={change.clone().reform(move |_| "todays_shipments".to_string())}><h5>{"Today"}</h5></div>
+            <h1 style="text-align: center;">{ "Today's Shipments" }</h1>
+            <div style="text-align: center; color: blue; text-decoration: underline;" onclick={change.clone().reform(move |_| "shipments".to_string())}><h5>{"Recent"}</h5></div>
+            <div style="margin: 3%; display: flex; width: 100%; flex-direction: row; justify-content: space-evenly;">
+            <h3 style="text-align: center;">{"Total: "} {app_state.shipments.len()}</h3><h3 style="text-align: center;">{"Complete: "} {total_expected(&app_state.shipments).4}</h3>
+            </div>
+            <div style="margin: 3%; display: flex; width: 100%; flex-direction: row; justify-content: space-evenly;">
+            <h3 style="text-align: center;">{"AR: "} {total_by_plant(&app_state.shipments).0}</h3><h3 style="text-align: center;">{"SH: "} {total_by_plant(&app_state.shipments).1}</h3>
+            </div>
+            <div style="margin: 3%; display: flex; width: 100%; flex-direction: row; justify-content: space-evenly;">
+            <h3>{"Not Started: "} {total_expected(&app_state.shipments).0}</h3> <h3>{"Picking: "} {total_expected(&app_state.shipments).1}</h3>
+            <h3>{"Hold: "} {total_expected(&app_state.shipments).6}</h3> 
+            </div>
+            <div style="margin: 3%; display: flex; width: 100%; flex-direction: row; justify-content: space-evenly;">
+            <h3>{"Ready To Load: "} {total_expected(&app_state.shipments).2}</h3>
+            <h3>{"Loading: "} {total_expected(&app_state.shipments).3}</h3> <h3>{"Verification: "} {total_expected(&app_state.shipments).5}</h3>
+            </div>
             <table>
                 <thead>
                     <tr style="text-align: center;">
@@ -211,7 +240,6 @@ pub fn shipments() -> Html {
                         <th>{"Pick Start Time"}</th>
                         <th>{"Pick Finish Time"}</th>
                         <th>{"Verified By"}</th>
-                        <th>{"Seal"}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -279,7 +307,6 @@ pub fn shipments() -> Html {
                             <td>{shipment.PickStartTime.clone()}</td>
                             <td>{shipment.PickFinishTime.clone()}</td>
                             <td>{shipment.VerifiedBy.clone()}</td>
-                            <td>{shipment.Seal.clone()}</td>
                             <td>
                                 <ActionButton user={user.clone()} shipment={shipment.clone()} />
                             </td>
@@ -309,14 +336,7 @@ pub fn shipments() -> Html {
                 }).collect::<Html>() }
                 </tbody>
             </table>
-            {
-                if app_state.user.as_ref().unwrap().is_authorized() {
-                    html! { <FloatingIcon /> }
-                } else {
-                    html! {<></>}
-                }
-            }
-            
+            <FloatingIcon />
         </div>
     }
 }

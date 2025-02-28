@@ -10,7 +10,9 @@
 </head>
 <body>
     <div id="root"></div>
+    <!--Frirst function is exposed to the web assembly window object to allow for downloading of csv files -->
     <script>
+        
         function downloadCSV(filename, text) {
             var element = document.createElement('a');
             element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(text));
